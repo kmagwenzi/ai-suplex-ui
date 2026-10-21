@@ -1,0 +1,13 @@
+[
+  {
+    "name": "ai-suplex",
+    "description": "AI-Suplex operator loop — mcp v1 (vault memory, tasklists, approvals)",
+    "transport": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/home/kmagwenzi/Projects/AI-Suplex-OS/ai-suplex-harness/server.js"],
+      "env": { "AISUPLEX_VAULT": "/home/kmagwenzi/Projects/AI-Suplex-OS/Deep-Ultra-OS/AI-Suplex-777" }
+    },
+    "enabled": true
+  }
+]

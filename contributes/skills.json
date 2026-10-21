@@ -1,0 +1,9 @@
+[
+  { "name": "session-start", "description": "AI-Suplex: Session Start — generate a battle-ready session start prompt from a tasklist", "file": "skills/session-start.md" },
+  { "name": "session-end-report", "description": "AI-Suplex: Session End Report — generate the report and run the memory loop", "file": "skills/session-end-report.md" },
+  { "name": "artifact-capture", "description": "AI-Suplex: Artifact Capture — capture work as an artifact and route lessons to memory", "file": "skills/artifact-capture.md" },
+  { "name": "save-context", "description": "AI-Suplex: Save Context — persist the thread's context to its instance file", "file": "skills/save-context.md" },
+  { "name": "tasklist-generation", "description": "AI-Suplex: Tasklist Generation — turn raw to-dos into a structured tasklist", "file": "skills/tasklist-generation.md" },
+  { "name": "weekly-review", "description": "AI-Suplex: Weekly Review — generate the strategic weekly review", "file": "skills/weekly-review.md" },
+  { "name": "b-bomb-promotion", "description": "AI-Suplex: B-Bomb Promotion — promote an artifact to a polished B-Bomb", "file": "skills/b-bomb-promotion.md" }
+]

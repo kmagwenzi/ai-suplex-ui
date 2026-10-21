@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="AI-Suplex 777">
+  <rect width="256" height="256" rx="48" fill="#0d1117"/>
+  <circle cx="128" cy="128" r="26" fill="#22d3ee"/>
+  <g stroke="#22d3ee" stroke-width="10" stroke-linecap="round">
+    <line x1="128" y1="102" x2="128" y2="40"/>
+    <line x1="128" y1="154" x2="128" y2="216"/>
+    <line x1="102" y1="128" x2="40" y2="128"/>
+    <line x1="154" y1="128" x2="216" y2="128"/>
+    <line x1="110" y1="110" x2="66" y2="66"/>
+    <line x1="146" y1="110" x2="190" y2="66"/>
+    <line x1="110" y1="146" x2="66" y2="190"/>
+    <line x1="146" y1="146" x2="190" y2="190"/>
+  </g>
+</svg>

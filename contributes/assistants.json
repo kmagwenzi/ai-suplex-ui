@@ -1,0 +1,17 @@
+[
+  {
+    "id": "ai-suplex-operator",
+    "name": "AI-Suplex Operator",
+    "description": "Operate the AI-Suplex 777 vault through the harness MCP tools — the Hustler decides.",
+    "contextFile": "assistants/ai-suplex-operator.md",
+    "enabledSkills": [
+      "session-start",
+      "session-end-report",
+      "artifact-capture",
+      "save-context",
+      "tasklist-generation",
+      "weekly-review",
+      "b-bomb-promotion"
+    ]
+  }
+]

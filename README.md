@@ -1,64 +1,47 @@
-# AI-Suplex × AionUI — MCP registration
+# AI-Suplex 777 Harness UI — AionUI extension
 
-Register the AI-Suplex MCP server (`Tools/mcp/server.js`) in AionUI over **stdio**.
+**One line:** install once and the AI-Suplex 777 harness is *on* — the MCP server, the skin, the 7 commands as skills, and the operator assistant.
 
-## 1 · Get the resolved config
+## What it is
 
-```bash
-node Tools/mcp/aionui/configure.js
-```
+One AionUI extension (`aion-extension.json`) that contributes four surfaces:
 
-It prints the `mcpServers` JSON with **this vault's** absolute path. No side effects.
-
-## 2 · Register in AionUI
-
-**Settings → MCP → Add server**
-
-| Field | Value |
+| Contribution | What |
 |---|---|
-| Name | `ai-suplex` |
-| Command | `node` |
-| Args | `<vault>/Tools/mcp/server.js` |
-| Transport | `stdio` |
-| Env | `AISUPLEX_VAULT=<vault>` (explicit; required when the harness runs from its own repo) |
+| `mcpServers` | the `ai-suplex` harness MCP server — **mcp v1**: 8 resources · 9 tools · 7 prompts |
+| `themes` | the **AI-Suplex 777** mission-control skin (dark base, one accent) |
+| `skills` | the 7 AI-Suplex Commands, one skill per command |
+| `assistants` | the **AI-Suplex Operator** assistant (all 7 skills enabled) |
 
-Or import the printed `mcpServers` JSON through AionUI's unified MCP management.
-AionUI injects the server into whichever agent you run (built-in · Claude Code · Hermes · …).
+## Install
 
-## 3 · Verify
+1. AionUI → **Extensions → Import** → select this folder (or the packaged extension).
+2. Confirm the import registers the server, theme, skills, and assistant.
 
-- AionUI lists **8 resources**, **9 tools**, **7 prompts**.
-- Open `suplex://context` — the operator brief.
-- Call `suplex_status` — the vault state.
+## Verify
 
-## What the server exposes
+| Check | Where | Expect |
+|---|---|---|
+| Server connected | Settings → MCP | `ai-suplex` · status `connected` |
+| Theme applied | Settings → Appearance | **AI-Suplex 777** — the dark skin |
+| 7 skills | Skills list | session-start · session-end-report · artifact-capture · save-context · tasklist-generation · weekly-review · b-bomb-promotion |
+| Operator | Assistants | **AI-Suplex Operator** · 7 skills enabled |
 
-| Kind | Items |
-|---|---|
-| **Resources (8)** | `suplex://context` · `mission` · `threads` · `tasklists` · `tasklist/{path}` · `memory/index` · `memory/lessons` · `approvals` |
-| **Tools (9)** | `suplex_status` · `suplex_tasklist_next` · `suplex_capture` · `suplex_save_context` · `suplex_close` · `suplex_index` · `suplex_promote` · `suplex_approve` · `suplex_ritual` |
-| **Prompts (7)** | `session-start` · `session-end-report` · `artifact-capture` · `save-context` · `tasklist-generation` · `weekly-review` · `b-bomb-promotion` |
+The server handshake (stdlib JSON-RPC): `initialize` → `ai-suplex-harness 1.0.0` · `resources/list` → 7 (+1 template) · `tools/list` → 9 · `prompts/list` → 7.
 
-## The boundary
+## Paths — edit before install
 
-The server is a **window** (`Spec — MCP Contract (mcp v1)` §7–§8):
+`contributes/mcp-servers.json` carries **machine-specific absolute paths**:
 
-- the **framework** is the only writer;
-- the **UI** never writes a file directly (two declared file-writes are the exception, and they are guarded);
-- **`3lm sync` is not on the surface** (the UI is not a committer);
-- the **Hustler gate** is `approved: true` on promote / approve / ritual.
+- `transport.args[0]` → the harness server (`…/ai-suplex-harness/server.js`)
+- `transport.env.AISUPLEX_VAULT` → the vault (`…/Deep-Ultra-OS/AI-Suplex-777`)
 
-## Optional: the assistant
+Point both at your own paths. The server resolves the vault from `AISUPLEX_VAULT` (then by walking up to `period.md`).
 
-`assistant.md` is an AionUI **custom-assistant** definition (Settings → Assistants → Create).
-It teaches the agent to use the MCP tools and respect the gate.
+## Honest limits
 
-## Optional: a skin
+- **Config + docs only** — no framework code, no fork of AionUI, no native database dependency.
+- **The chat widget is out of scope** — a command-palette widget is an upstream AionUI feature request; the commands-as-skills + the operator assistant are the native surface.
+- **Ultra is not included** — this is the free 777 harness; the paid Ultra faculties ship separately.
 
-AionUI supports custom CSS. Keep any theme in `ai-suplex-ui/theme.css`; it is cosmetic and
-never carries framework code (the UI is config, not a fork).
-
-## Extraction
-
-This folder is the seed for **`ai-suplex-ui`**: it contains config + docs only, and depends on
-`mcp v1` — never on framework code.
+*777 records; Ultra reasons.*

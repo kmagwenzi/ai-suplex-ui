@@ -1,0 +1,28 @@
+/* AI-Suplex 777 — mission control theme.
+ *
+ * A restrained dark base, one accent, high contrast. Overrides only the documented
+ * AionUI tokens (docs/theming/tokens.md). No garish gradients; WCAG AA on body text.
+ */
+:root {
+  /* accent — one colour, used sparingly */
+  --primary: #22d3ee;
+  --brand: #22d3ee;
+  --brand-light: #67e8f9;
+  --brand-hover: #0891b2;
+
+  /* dark base, stepped surfaces */
+  --bg-base: #0d1117;
+  --bg-1: #111820;
+  --bg-2: #161d27;
+  --bg-3: #1c2530;
+
+  /* text — high contrast on the dark base */
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+
+  /* structure */
+  --border-base: #30363d;
+  --message-user-bg: #1f2937;
+  --message-tips-bg: #0d1117;
+  --thought-gradient: linear-gradient(180deg, #161d27 0%, #0d1117 100%);
+}

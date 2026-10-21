@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "ai-suplex": {
-      "command": "node",
-      "args": ["__VAULT__/Tools/mcp/server.js"],
-      "env": { "AISUPLEX_VAULT": "__VAULT__" }
-    }
-  }
-}

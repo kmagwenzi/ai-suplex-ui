@@ -1,0 +1,13 @@
+{
+  "name": "ai-suplex-ui",
+  "displayName": "AI-Suplex 777 Harness",
+  "version": "1.0.0",
+  "description": "The AI-Suplex 777 harness surface: MCP server registration, the skin, the 7 commands as skills, and the operator assistant.",
+  "engine": { "aionui": "^1.0.0" },
+  "contributes": {
+    "mcpServers": "contributes/mcp-servers.json",
+    "themes": "contributes/themes.json",
+    "skills": "contributes/skills.json",
+    "assistants": "contributes/assistants.json"
+  }
+}
