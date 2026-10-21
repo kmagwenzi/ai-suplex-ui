@@ -12,6 +12,7 @@
       "tasklist-generation",
       "weekly-review",
       "b-bomb-promotion"
-    ]
+    ],
+    "presetAgentType": "gemini"
   }
 ]
