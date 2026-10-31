@@ -49,8 +49,8 @@ export function DebugOverlay() {
           mcp debug
         </span>
         <span className="num text-[11px]">
-          p50 <span className="text-accent">{snap?.p50 ?? "—"}</span>ms · p95{" "}
-          <span className="text-accent">{snap?.p95 ?? "—"}</span>ms ·{" "}
+          p50 <span className="text-accent-on-dark">{snap?.p50 ?? "—"}</span>ms · p95{" "}
+          <span className="text-accent-on-dark">{snap?.p95 ?? "—"}</span>ms ·{" "}
           {snap?.count ?? 0} calls
         </span>
       </div>
@@ -69,7 +69,7 @@ export function DebugOverlay() {
               <td className="num px-2 py-1 text-right">{r.ms}</td>
               <td
                 className={
-                  "num px-4 py-1 text-right " + (r.ok ? "text-accent" : "text-error")
+                  "num px-4 py-1 text-right " + (r.ok ? "text-accent-on-dark" : "text-error-on-dark")
                 }
               >
                 {r.code}

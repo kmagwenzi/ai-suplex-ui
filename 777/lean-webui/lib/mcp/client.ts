@@ -5,8 +5,9 @@
  * "MCP is slow and erratic" false: **never spawn per request**. One warm
  * `node <HARNESS_PATH>` process lives for the life of the app; JSON-RPC 2.0 is
  * newline-delimited over stdin/stdout, responses route to their caller through
- * a request map, every call has a 5s timeout, and a dead process gets one
- * reconnect before the error is surfaced (with the tool/resource name).
+ * a request map, every call has a 5s timeout, and a dead process is respawned
+ * on the next call — a call in flight when it dies gets a named error, and a
+ * failed respawn surfaces the error (with the tool/resource name).
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
@@ -59,7 +60,6 @@ class McpClient {
   private initialized = false;
   private capability: SuplexCapability | null = null;
   private lastStderr = "";
-  private respawns = 0;
 
   // ── lifecycle ─────────────────────────────────────────────────────────────
 

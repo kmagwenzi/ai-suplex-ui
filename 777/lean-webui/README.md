@@ -25,6 +25,9 @@ npm install
 npm run dev      # or: npm run ui — Node >= 20, no node:sqlite
 ```
 
+> Fonts (Space Grotesk + IBM Plex Mono) are downloaded and self-hosted by
+> `next/font/google` at **build time** — the first `npm run build` needs network.
+
 The console spawns **one** persistent harness process (`node server.js`) and
 keeps it warm for the life of the app — never per request. It resolves the
 harness by `HARNESS_PATH`, defaulting to `../../../ai-suplex-harness/server.js`
@@ -55,7 +58,7 @@ otherwise uses its own `vault.json` link (`node link.js --show` to check).
 ## Verify
 
 ```bash
-npm test                  # stage-state derivation (Vitest)
+npm test                  # stage-state derivation (tsx + node:test)
 npm run build             # Next.js build + the Node 20 preflight
 grep -rn "node:sqlite" app lib components scripts || echo "GATE — no sqlite"
 grep -rn "vault-index\|/lib/3lm\|knowledge-graph" app lib components || echo "GATE — pure window"

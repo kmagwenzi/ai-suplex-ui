@@ -27,8 +27,12 @@
   /* the one data hue + semantic states */
   --accent: #1d6b3f; /* brand: the line, memory compounding, "you are here" */
   --accent-ink: #14502e;
-  --attention: #a16207; /* gates / needs-you */
+  --attention: #92600a; /* gates / needs-you — ≥4.5:1 on --bg (AA small text) */
   --error: #b3261e; /* blocked / MCP down */
+
+  /* on-dark variants — the ?debug=1 overlay reads on --ink, not the paper */
+  --accent-on-dark: #4cc38a;
+  --error-on-dark: #f87171;
 
   /* radii */
   --radius: 10px;

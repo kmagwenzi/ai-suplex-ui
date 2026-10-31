@@ -23,9 +23,10 @@ const config: Config = {
         border: "var(--border)",
         "border-strong": "var(--border-strong)",
         accent: "var(--accent)",
-        ok: "var(--ok)",
+        "accent-on-dark": "var(--accent-on-dark)",
         attention: "var(--attention)",
         error: "var(--error)",
+        "error-on-dark": "var(--error-on-dark)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
