@@ -29,5 +29,8 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }
