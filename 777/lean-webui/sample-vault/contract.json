@@ -1,0 +1,84 @@
+{
+  "$comment": "mcp v1 — the executable seam between the framework, the harness and the UI. Canonical spec: AI-Suplex Kick-start/Spec — MCP Contract (mcp v1).md (RATIFIED 2026-10-20). Every MCP tool is either one framework CLI invocation or one declared file-write; the framework is the only writer.",
+  "contract": "mcp v1",
+  "semver": "1.0.0",
+  "framework_min": "2.8.0",
+  "tier": "free",
+  "capabilities": [
+    "context",
+    "threads",
+    "tasklists",
+    "memory",
+    "capture",
+    "close",
+    "promote",
+    "approvals",
+    "rituals",
+    "prompts"
+  ],
+  "resources": [
+    "context",
+    "mission",
+    "threads",
+    "tasklists",
+    "tasklist",
+    "memory/index",
+    "memory/lessons",
+    "approvals"
+  ],
+  "tools": [
+    "suplex_status",
+    "suplex_tasklist_next",
+    "suplex_capture",
+    "suplex_save_context",
+    "suplex_close",
+    "suplex_index",
+    "suplex_promote",
+    "suplex_approve",
+    "suplex_ritual"
+  ],
+  "prompts": [
+    "session-start",
+    "session-end-report",
+    "artifact-capture",
+    "save-context",
+    "tasklist-generation",
+    "weekly-review",
+    "b-bomb-promotion"
+  ],
+  "resourceMap": {
+    "context": { "uri": "suplex://context", "kind": "computed", "backedBy": ["asmc", "open", "--json"], "readOnly": true },
+    "mission": { "uri": "suplex://mission", "kind": "file", "path": "AI-Suplex Kick-start/Context Kick-start/Active Mission Context.md", "readOnly": true },
+    "threads": { "uri": "suplex://threads", "kind": "computed", "backedBy": ["3lm", "threads", "--list", "--json"], "readOnly": true },
+    "tasklists": { "uri": "suplex://tasklists", "kind": "computed", "backedBy": ["asmc", "status", "--json"], "readOnly": true },
+    "tasklist": { "uri": "suplex://tasklist/{path}", "kind": "file", "root": "Tasklists/", "readOnly": true },
+    "memory/index": { "uri": "suplex://memory/index", "kind": "file", "path": "Memory/index.md", "readOnly": true },
+    "memory/lessons": { "uri": "suplex://memory/lessons", "kind": "file", "path": "Memory/lessons.md", "readOnly": true },
+    "approvals": { "uri": "suplex://approvals", "kind": "computed", "backedBy": ["approvals", "--json"], "readOnly": true }
+  },
+  "mappings": {
+    "suplex_status": { "kind": "cli", "argv": ["asmc", "status", "--json"], "mutates": false, "gate": null },
+    "suplex_tasklist_next": { "kind": "cli", "argv": ["asmc", "status", "--json"], "mutates": false, "gate": null },
+    "suplex_capture": { "kind": "file-write", "writes": ["Artifacts/**", "Insights/**"], "mutates": true, "gate": null },
+    "suplex_save_context": { "kind": "file-write", "writes": ["Context Kick-start/Active/**"], "mutates": true, "gate": null },
+    "suplex_close": { "kind": "cli", "argv": ["asmc", "close"], "mutates": true, "gate": null },
+    "suplex_index": { "kind": "cli", "argv": ["3lm", "index"], "mutates": true, "gate": null },
+    "suplex_promote": { "kind": "cli", "argv": ["3lm", "promote", "--min", "{min}"], "mutates": true, "gate": "hustler" },
+    "suplex_approve": { "kind": "decision", "uses": ["approvals"], "mutates": true, "gate": "hustler" },
+    "suplex_ritual": { "kind": "cli", "argv": ["ritual", "{which}", "--run", "--tier", "{tier}"], "mutates": true, "gate": "hustler" }
+  },
+  "writes": [
+    "Artifacts/**",
+    "Insights/**",
+    "Reviews/**",
+    "Memory/lessons.md",
+    "Memory/index.md",
+    "Context Kick-start/Active/**"
+  ],
+  "never": [
+    "3lm sync",
+    "B-Bombs/** (unattended)",
+    "Tools/ultra/**",
+    "Memory/knowledge-graph*.db"
+  ]
+}
