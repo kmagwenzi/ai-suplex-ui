@@ -61,6 +61,7 @@ class McpClient {
   private initialized = false;
   private capability: SuplexCapability | null = null;
   private lastStderr = "";
+  private startPromise: Promise<void> | null = null;
 
   // ── lifecycle ─────────────────────────────────────────────────────────────
 
@@ -120,6 +121,11 @@ class McpClient {
       const trimmed = d.trim();
       if (trimmed) this.lastStderr = trimmed;
     });
+    this.proc.on("error", (err: Error) => {
+      // a failed spawn may emit 'error' without 'exit' — clean up and name it.
+      this.lastStderr = err.message;
+      this.onExit(null, null);
+    });
     this.proc.on("exit", this.onExit);
 
     const init = (await this.request("initialize", {
@@ -139,19 +145,24 @@ class McpClient {
     this.notify("notifications/initialized", {});
   }
 
-  private async ensureStarted(): Promise<void> {
-    if (this.proc && this.initialized) return;
-    try {
-      await this.start();
-    } catch (e) {
-      this.proc = null;
-      this.initialized = false;
-      const detail =
-        this.lastStderr || (e instanceof Error ? e.message : String(e));
-      throw new Error(
-        `could not start the MCP server (${harnessPath()}): ${detail}`,
-      );
+  private ensureStarted(): Promise<void> {
+    if (this.proc && this.initialized) return Promise.resolve();
+    if (!this.startPromise) {
+      this.startPromise = this.start()
+        .catch((e) => {
+          this.proc = null;
+          this.initialized = false;
+          const detail =
+            this.lastStderr || (e instanceof Error ? e.message : String(e));
+          throw new Error(
+            `could not start the MCP server (${harnessPath()}): ${detail}`,
+          );
+        })
+        .finally(() => {
+          this.startPromise = null;
+        });
     }
+    return this.startPromise;
   }
 
   // ── protocol ──────────────────────────────────────────────────────────────
