@@ -65,10 +65,12 @@ export function Header() {
   const nav = [
     { href: "/", label: "Today" },
     { href: "/pipeline", label: "Pipeline" },
+    { href: "/commands", label: "Commands" },
+    { href: "/setup", label: "Setup" },
   ];
 
   return (
-    <header className="flex items-center justify-between border-b border-border py-4">
+    <header className="flex flex-wrap items-center justify-between gap-y-2 border-b border-border py-4">
       <div className="flex items-center gap-3">
         <Mark />
         <div>
@@ -81,7 +83,7 @@ export function Header() {
         </div>
       </div>
 
-      <nav className="flex items-center gap-1">
+      <nav className="order-3 flex w-full items-center gap-1 sm:order-none sm:w-auto">
         {nav.map((n) => {
           const active = pathname === n.href;
           return (

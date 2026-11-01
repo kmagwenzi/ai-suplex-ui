@@ -1,14 +1,6 @@
-import type { DerivedStage, Executor } from "@/lib/types";
-import { EXECUTOR_GLYPH } from "@/lib/stages";
+import type { DerivedStage } from "@/lib/types";
+import { EXECUTOR_GLYPH, EXECUTOR_LABEL } from "@/lib/stages";
 import { stageGlyph, stateTextClass } from "./stage-glyph";
-
-const EXECUTOR_LABEL: Record<Executor, string> = {
-  agent: "agent",
-  deterministic: "deterministic",
-  human: "human",
-  "agent+tool": "agent + tool",
-  "tool+human": "tool + human",
-};
 
 /** The whole assembly line as a readable vertical stack (spec §5 /pipeline). */
 export function PipelineList({ stages }: { stages: DerivedStage[] }) {

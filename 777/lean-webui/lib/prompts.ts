@@ -1,0 +1,277 @@
+/**
+ * prompts.ts — the command catalogue's facts + the composer's pure helpers.
+ *
+ * The catalogue mirrors the harness `prompts.js` via `prompts/list` + `prompts/get`;
+ * the UI never re-authors a pattern. This module holds only the *metadata* the
+ * prompt surface does not carry (stage, output, memory-loop classification) and
+ * the composer's fill-in-the-blanks transform. No MCP calls, no reads, no clock.
+ */
+
+import type { Instance, StageId, TasklistSummary } from "./types";
+import { EXECUTOR_GLYPH, EXECUTOR_LABEL, STAGE_META, isDailyTasklist } from "./stages";
+
+// ── the `prompts/list` shape ────────────────────────────────────────────────
+export interface PromptArgument {
+  name: string;
+  required: boolean;
+}
+
+export interface PromptListItem {
+  name: string;
+  command: string; // "AI-Suplex: Session Start"
+  description: string;
+  arguments: PromptArgument[];
+}
+
+/** The stage each `mcp v1` prompt belongs to (PRD D1 / spec §8). */
+export const PROMPT_STAGE: Record<string, StageId> = {
+  "session-start": "session-start",
+  "session-end-report": "close",
+  "artifact-capture": "capture",
+  "save-context": "save-context",
+  "tasklist-generation": "plan",
+  "weekly-review": "review",
+  "b-bomb-promotion": "review",
+};
+
+/** The declared save path each command produces (spec §6 / pattern files). */
+export const PROMPT_OUTPUT: Record<string, string> = {
+  "session-start": "Sessions/Active/Start/",
+  "session-end-report": "Sessions/Active/End/",
+  "artifact-capture": "Artifacts/… · Insights/…",
+  "save-context": "Context Kick-start/Active/",
+  "tasklist-generation": "Tasklists/",
+  "weekly-review": "Reviews/",
+  "b-bomb-promotion": "B-Bombs/…",
+};
+
+export type MemoryLoop = "yes" | "conditional" | "no" | null;
+
+/**
+ * Classify the pattern's MEMORY LOOP section. `null` = the pattern does not
+ * declare one — shown as "—", never invented.
+ */
+export function memoryLoopKind(body: string): MemoryLoop {
+  if (!/memory\s*loop/i.test(body)) return null;
+  if (/skip\s*memory\s*loop|only\s+at\s+session\s+end|unless\s+`?skip/i.test(body)) {
+    return "conditional";
+  }
+  return "yes";
+}
+
+// ── the composer ─────────────────────────────────────────────────────────────
+
+export type SourceType = "vault-file" | "raw" | "chat-reference";
+
+export const SOURCE_LABEL: Record<SourceType, string> = {
+  "vault-file": "File Reference",
+  raw: "Raw Content",
+  "chat-reference": "Chat Reference",
+};
+
+export interface SourceSelection {
+  type: SourceType | null;
+  value: string;
+}
+
+/**
+ * Fill the harness envelope's two placeholders with the user's inputs. The
+ * pattern body — everything the harness returned — is untouched. The composer's
+ * only job is context, not text (spec §6).
+ */
+export function composePrompt(
+  baseText: string,
+  source: SourceSelection,
+  additional: string,
+): string {
+  let out = baseText;
+  const contentLine =
+    source.type && source.value.trim()
+      ? `  - ${SOURCE_LABEL[source.type]}: ${source.value.trim()}`
+      : null;
+  out = out.replace(
+    "  - <Source type>: <value>",
+    contentLine ?? "  - <Source type>: <value>",
+  );
+  const add = additional.trim();
+  out = out.replace(
+    "ADDITIONAL: <instructions>",
+    add ? `ADDITIONAL: ${add}` : "ADDITIONAL: <instructions>",
+  );
+  return out;
+}
+
+// ── context pre-fill (live resources → editable starting value) ─────────────
+
+export interface Prefill {
+  type: SourceType | null;
+  value: string;
+  note: string | null;
+}
+
+export interface PrefillInput {
+  cycle: number;
+  week: number;
+  tasklists: TasklistSummary[];
+  threads: Instance[];
+}
+
+/**
+ * The starting source for a command, from what `mcp v1` actually exposes.
+ * Every pre-fill is editable — never a locked auto-answer. Where the resource
+ * does not exist on the read surface, the note says so instead of inventing it.
+ */
+export function prefillFor(name: string, input: PrefillInput): Prefill {
+  switch (name) {
+    case "session-start": {
+      const active = input.tasklists.find(
+        (t) => t.status === "active" && isDailyTasklist(t.file),
+      );
+      if (active) {
+        return {
+          type: "vault-file",
+          value: `Tasklists/${active.file}`,
+          note: "the active daily tasklist",
+        };
+      }
+      return { type: null, value: "", note: "no active daily tasklist for today" };
+    }
+    case "save-context": {
+      const inst = input.threads[0];
+      if (inst) {
+        return {
+          type: "vault-file",
+          value: inst.file,
+          note: `the ${inst.thread}${inst.ref ? ` · ${inst.ref}` : ""} instance`,
+        };
+      }
+      return { type: null, value: "", note: "no open instances" };
+    }
+    case "weekly-review": {
+      return {
+        type: "raw",
+        value: `Cycle ${input.cycle} · Week ${input.week}`,
+        note:
+          "artifacts aren't on the mcp v1 read surface — paste them or point at files",
+      };
+    }
+    case "session-end-report": {
+      return {
+        type: "raw",
+        value: "",
+        note: "today's captures aren't on the mcp v1 read surface — paste them",
+      };
+    }
+    case "tasklist-generation": {
+      return { type: "raw", value: "", note: "paste the to-dos" };
+    }
+    case "artifact-capture": {
+      return {
+        type: null,
+        value: "",
+        note: "choose a source — vault file, raw text, or a chat reference",
+      };
+    }
+    case "b-bomb-promotion": {
+      return {
+        type: null,
+        value: "",
+        note: "the Artifacts/ index isn't on the mcp v1 read surface — name the artifact",
+      };
+    }
+    default:
+      return { type: null, value: "", note: null };
+  }
+}
+
+/** The vault files a `File Reference` source may point at (live resources). */
+export interface VaultFileOption {
+  label: string;
+  path: string;
+}
+
+export function vaultFileOptions(input: PrefillInput): VaultFileOption[] {
+  const opts: VaultFileOption[] = [
+    ...input.tasklists.map((t) => ({
+      label: t.title || t.file,
+      path: `Tasklists/${t.file}`,
+    })),
+    ...input.threads.map((i) => ({ label: i.file, path: i.file })),
+    {
+      label: "Active Mission Context",
+      path: "AI-Suplex Kick-start/Context Kick-start/Active Mission Context.md",
+    },
+    { label: "Memory/lessons.md", path: "Memory/lessons.md" },
+    { label: "Memory/index.md", path: "Memory/index.md" },
+  ];
+  return opts;
+}
+
+/** One catalogue card: the prompt's MCP facts joined with its spec metadata. */
+export interface PromptCard {
+  name: string;
+  command: string;
+  description: string;
+  arguments: PromptArgument[];
+  stageName: string;
+  output: string;
+  memoryLoop: MemoryLoop;
+  executorGlyph: string;
+  executorLabel: string;
+}
+
+export function buildCard(item: PromptListItem, body: string | null): PromptCard {
+  const stageId = PROMPT_STAGE[item.name];
+  const meta = STAGE_META.find((m) => m.id === stageId);
+  return {
+    name: item.name,
+    command: item.command,
+    description: item.description,
+    arguments: item.arguments,
+    stageName: meta?.name ?? "—",
+    output: PROMPT_OUTPUT[item.name] ?? meta?.output ?? "—",
+    memoryLoop: body ? memoryLoopKind(body) : null,
+    executorGlyph: meta ? EXECUTOR_GLYPH[meta.executor] : "—",
+    executorLabel: meta ? EXECUTOR_LABEL[meta.executor] : "—",
+  };
+}
+
+// ── the six copy-only commands (mcp v2 `commands` surface — listed, never dispatched) ──
+export interface CopyOnlyCommand {
+  command: string;
+  trigger: string;
+  link: string; // vault deep link (resolved against the real vault)
+}
+
+export const COPY_ONLY_COMMANDS: CopyOnlyCommand[] = [
+  {
+    command: "Kickstart",
+    trigger: "AI-Suplex: Kickstart",
+    link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Kickstart.md",
+  },
+  {
+    command: "Weekly Ritual",
+    trigger: "AI-Suplex: Weekly Ritual",
+    link: "AI-Suplex Kick-start/Weekly Reset – The Tuesday Ritual.md",
+  },
+  {
+    command: "Batch Insight",
+    trigger: "AI-Suplex: Batch Insight",
+    link: "Prompt Patterns/📄 Pattern - Batch Insight Generation.md",
+  },
+  {
+    command: "Note Capture",
+    trigger: "AI-Suplex: Note Capture",
+    link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Note Capture.md",
+  },
+  {
+    command: "Outreach Capture",
+    trigger: "AI-Suplex: Outreach Capture",
+    link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Outreach Capture.md",
+  },
+  {
+    command: "Deep Ultra Mode",
+    trigger: "AI-Suplex: Deep Ultra Mode (Arcade · Operative · Pro)",
+    link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Deep Ultra Mode (Operative).md",
+  },
+];

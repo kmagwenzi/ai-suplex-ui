@@ -1,4 +1,4 @@
-import { readConsoleData, type ConsoleData } from "@/lib/mcp/resources";
+import { readConsoleData } from "@/lib/mcp/resources";
 import { deriveStages } from "@/lib/stages";
 import { PipelineList } from "@/components/pipeline-list";
 import { DebugOverlay } from "@/components/debug-overlay";
@@ -12,29 +12,25 @@ export default async function Pipeline({
 }) {
   const debug = (await searchParams).debug === "1";
 
-  let data: ConsoleData | null = null;
-  let error: string | null = null;
-  try {
-    data = await readConsoleData();
-  } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
-  }
+  const data = await readConsoleData();
 
-  if (error || !data) {
+  if (!data.brief || !data.signals) {
     return (
       <main className="pt-10">
         <div className="rounded-lg border border-border bg-surface p-6">
           <h1 className="text-[20px] font-semibold tracking-[-0.01em] text-error">
             The console cannot reach the vault
           </h1>
-          <p className="mono mt-3 break-words text-[12px] text-muted">{error}</p>
+          <p className="mono mt-3 break-words text-[12px] text-muted">
+            {data.failed.length ? data.failed.join(" · ") : "suplex://context unavailable"}
+          </p>
         </div>
       </main>
     );
   }
 
   const stages = deriveStages(data.signals);
-  const { brief } = data;
+  const brief = data.brief;
 
   return (
     <main className="pt-8">

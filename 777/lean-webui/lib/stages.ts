@@ -112,6 +112,14 @@ export const EXECUTOR_GLYPH: Record<Executor, string> = {
   "tool+human": "⚙️👤",
 };
 
+export const EXECUTOR_LABEL: Record<Executor, string> = {
+  agent: "agent",
+  deterministic: "deterministic",
+  human: "human",
+  "agent+tool": "agent + tool",
+  "tool+human": "tool + human",
+};
+
 /** A tasklist filename is a *daily* plan when it is not a thread instance. */
 export function isDailyTasklist(file: string): boolean {
   return !/-(project-tasks|random-tasks|long-running|week-reset)-/.test(file);

@@ -25,7 +25,7 @@ const HARNESS_DEFAULT = path.resolve(
 
 const CALL_TIMEOUT_MS = 5000;
 
-function harnessPath(): string {
+export function harnessPath(): string {
   return process.env.HARNESS_PATH || HARNESS_DEFAULT;
 }
 
@@ -48,6 +48,7 @@ interface SuplexCapability {
 export interface ClientStatus {
   ok: boolean;
   contract: string | null;
+  semver: string | null;
   tier: string | null;
   last: CallRecord | null;
 }
@@ -201,6 +202,7 @@ class McpClient {
     return {
       ok: this.initialized,
       contract: this.capability?.contract ?? null,
+      semver: this.capability?.semver ?? null,
       tier: this.capability?.tier ?? null,
       last: lastRecord(),
     };

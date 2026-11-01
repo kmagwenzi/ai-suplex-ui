@@ -34,14 +34,26 @@ harness by `HARNESS_PATH`, defaulting to `../../../ai-suplex-harness/server.js`
 relative to this app. `AISUPLEX_VAULT` is passed straight through; the harness
 otherwise uses its own `vault.json` link (`node link.js --show` to check).
 
-## Routes (W1)
+## Routes
 
 | Route | Job |
 |---|---|
 | `/` | **Today** — the pipeline strip, the current stage, the next command, the memory pulse, Ultra named-and-locked |
 | `/pipeline` | the ten stages as a readable stack — state · inputs · command · output · gate |
+| `/commands` | the catalogue — 7 dispatchable prompts (via `prompts/list` + `prompts/get`) + 6 copy-only, with the composer |
+| `/setup` | first run — vault detect, `link.js` docs, MCP latency, the sample-vault offer, the first-loop entry |
 | `/api/health` | live MCP latency for the header dot |
 | `/api/telemetry` | per-call name · ms · exit code + p50/p95 (`?debug=1` overlay) |
+| `/api/prompt` | one prompt's verbatim envelope + body (the composer fetches this lazily) |
+
+## Sample vault
+
+`sample-vault/` is a committed, documented fixture — one realistic week
+(Cycle 3 · Week 1) that passes the `link.js` marker check (`period.md` +
+`contract.json`). It ships tasklists, a session, artifacts, lessons with a
+**planted contradiction**, and two open instances. See `sample-vault/README.md`.
+It is **data only** — the framework's `Tools/` scripts stay in the real vault,
+never in this repo.
 
 ## Architecture
 

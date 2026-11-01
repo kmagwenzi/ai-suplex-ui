@@ -136,27 +136,41 @@ export function buildSignals(
 
 export interface ConsoleData {
   today: string;
-  brief: OperatorBrief;
-  tasklists: OperatorBrief;
-  threads: Instance[];
-  approvals: Approvals;
-  signals: Signals;
+  brief: OperatorBrief | null;
+  tasklists: OperatorBrief | null;
+  threads: Instance[] | null;
+  signals: Signals | null;
+  /** resource URIs that failed to read — listed in the fatal panel */
+  failed: string[];
 }
 
-/** One parallel fetch of the read surface — the Today and /pipeline payload. */
+/**
+ * Read the pipeline-critical resources independently. `context` is the only
+ * fatal read — it alone carries cycle/week/instances/tasklists, so the other
+ * reads can degrade. `approvals` is deliberately **not** fetched here: it is
+ * read separately by the Today page (the only screen that renders it), so a
+ * slow `approvals --json` can never blank the pipeline or the commands page.
+ *
+ * A single failed read degrades to `null` and is named in `failed`; it never
+ * rejects the whole surface (no all-or-nothing).
+ */
 export async function readConsoleData(): Promise<ConsoleData> {
-  const [brief, tasklists, threads, approvals] = await Promise.all([
-    readContext(),
-    readTasklists(),
-    readThreads(),
-    readApprovals(),
+  const [brief, tasklists, threads] = await Promise.all([
+    readContext().catch(() => null),
+    readTasklists().catch(() => null),
+    readThreads().catch(() => null),
   ]);
-  return {
-    today: localToday(),
-    brief,
-    tasklists,
-    threads,
-    approvals,
-    signals: buildSignals(brief, tasklists, threads),
-  };
+
+  const failed: string[] = [];
+  if (!brief) failed.push(RESOURCE_URIS.context);
+  if (!tasklists) failed.push(RESOURCE_URIS.tasklists);
+  if (!threads) failed.push(RESOURCE_URIS.threads);
+
+  // context cannot be reconstructed — fall back to the brief's inline
+  // tasklists/instances when the richer reads fail, so only context is fatal.
+  const signals = brief
+    ? buildSignals(brief, tasklists ?? brief, threads ?? (brief.instances ?? []))
+    : null;
+
+  return { today: localToday(), brief, tasklists, threads, signals, failed };
 }

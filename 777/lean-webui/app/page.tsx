@@ -1,4 +1,5 @@
-import { readConsoleData, type ConsoleData } from "@/lib/mcp/resources";
+import Link from "next/link";
+import { readApprovals, readConsoleData } from "@/lib/mcp/resources";
 import { deriveStages, EXECUTOR_GLYPH } from "@/lib/stages";
 import { PipelineStrip } from "@/components/pipeline-strip";
 import { DebugOverlay } from "@/components/debug-overlay";
@@ -12,15 +13,12 @@ export default async function Today({
 }) {
   const debug = (await searchParams).debug === "1";
 
-  let data: ConsoleData | null = null;
-  let error: string | null = null;
-  try {
-    data = await readConsoleData();
-  } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
-  }
+  const [data, approvals] = await Promise.all([
+    readConsoleData(),
+    readApprovals().catch(() => null),
+  ]);
 
-  if (error || !data) {
+  if (!data.brief || !data.signals) {
     return (
       <main className="pt-10">
         <Panel>
@@ -30,7 +28,9 @@ export default async function Today({
           <p className="mt-2 text-[14px] text-ink-2">
             The MCP server is down. Nothing was cached, so nothing renders.
           </p>
-          <p className="mono mt-3 break-words text-[12px] text-muted">{error}</p>
+          <p className="mono mt-3 break-words text-[12px] text-muted">
+            {data.failed.length ? data.failed.join(" · ") : "suplex://context unavailable"}
+          </p>
           <p className="mt-3 text-[13px] text-muted">
             Start it with{" "}
             <code className="mono text-[12px] text-ink">
@@ -46,7 +46,7 @@ export default async function Today({
 
   const stages = deriveStages(data.signals);
   const current = stages.find((s) => s.state === "current") ?? stages[0];
-  const { brief, approvals } = data;
+  const brief = data.brief;
   const lessons = approvals?.lessons;
 
   return (
@@ -91,10 +91,15 @@ export default async function Today({
                   {EXECUTOR_GLYPH[current.executor]}
                 </span>
               </div>
-              <div className="mt-1 text-[12px] text-muted">
-                Composing and dispatch arrive in the next slice — for now this
-                is the verb, read live from the vault.
+              <div className="mt-2 text-[12px] text-muted">
+                The verb, read live from the vault.
               </div>
+              <Link
+                href="/commands"
+                className="mt-1.5 inline-block text-[13px] font-medium text-accent hover:text-accent-ink"
+              >
+                Compose a command →
+              </Link>
             </div>
           </section>
         </div>
