@@ -43,7 +43,7 @@ export function DebugOverlay() {
   }, []);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-h-[60vh] w-[420px] max-w-[calc(100vw-2rem)] overflow-auto rounded-lg bg-ink text-[#e7e4dd] shadow-2xl">
+    <div className="fixed bottom-4 right-4 z-50 max-h-[60vh] w-[420px] max-w-[calc(100vw-2rem)] overflow-auto rounded-lg bg-[#161411] text-[#e7e4dd] shadow-2xl">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
         <span className="mono text-[11px] uppercase tracking-[0.04em]">
           mcp debug

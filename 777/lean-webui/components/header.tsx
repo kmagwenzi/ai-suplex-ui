@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface Health {
   ok: boolean;
@@ -12,29 +13,26 @@ interface Health {
   error?: string;
 }
 
-/** A drawn mark — the pipeline itself, one filled node on the line. */
-function Mark() {
+/** The AI-Suplex Labs mark — navy tile, gold chevron (theme-independent). */
+function Logo() {
   return (
     <svg
-      width="22"
-      height="22"
-      viewBox="0 0 22 22"
-      aria-hidden
-      className="text-accent"
+      width="24"
+      height="24"
+      viewBox="0 0 32 32"
+      role="img"
+      aria-label="AI-Suplex Labs"
+      className="shrink-0"
     >
-      <rect
-        x="0.5"
-        y="0.5"
-        width="21"
-        height="21"
-        rx="6"
+      <rect width="32" height="32" rx="7" fill="#1a2947" />
+      <path
+        d="M8.6 21.8 L16 9.6 L23.4 21.8"
         fill="none"
-        stroke="currentColor"
+        stroke="#b8862e"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <circle cx="6.5" cy="11" r="1.6" fill="currentColor" />
-      <circle cx="11" cy="11" r="2.2" fill="currentColor" />
-      <circle cx="15.5" cy="11" r="1.6" fill="currentColor" />
-      <line x1="6.5" y1="11" x2="15.5" y2="11" stroke="currentColor" />
     </svg>
   );
 }
@@ -66,13 +64,15 @@ export function Header() {
     { href: "/", label: "Today" },
     { href: "/pipeline", label: "Pipeline" },
     { href: "/commands", label: "Commands" },
+    { href: "/session", label: "Session" },
+    { href: "/memory", label: "Memory" },
     { href: "/setup", label: "Setup" },
   ];
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-y-2 border-b border-border py-4">
       <div className="flex items-center gap-3">
-        <Mark />
+        <Logo />
         <div>
           <div className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
             AI-Suplex 777
@@ -83,7 +83,7 @@ export function Header() {
         </div>
       </div>
 
-      <nav className="order-3 flex w-full items-center gap-1 sm:order-none sm:w-auto">
+      <nav className="order-3 flex w-full flex-wrap items-center gap-1 sm:order-none sm:w-auto">
         {nav.map((n) => {
           const active = pathname === n.href;
           return (
@@ -104,6 +104,7 @@ export function Header() {
       </nav>
 
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <span className="mono hidden text-[11px] uppercase tracking-[0.04em] text-muted sm:inline">
           runtime: vault-native
         </span>

@@ -133,7 +133,7 @@ function Card({
         <button
           type="button"
           onClick={onCompose}
-          className="rounded-md bg-accent px-3 py-1.5 text-[13px] font-medium text-white hover:bg-accent-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="rounded-md bg-accent px-3 py-1.5 text-[13px] font-medium text-on-accent hover:bg-accent-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Compose
         </button>
@@ -309,7 +309,7 @@ function Composer({
                       className={
                         "rounded-md border px-3 py-1.5 text-[13px] " +
                         (sourceType === t.id
-                          ? "border-accent bg-accent text-white"
+                          ? "border-accent bg-accent text-on-accent"
                           : "border-border bg-surface text-ink-2 hover:text-ink")
                       }
                     >
@@ -395,7 +395,7 @@ function Composer({
             type="button"
             onClick={copy}
             disabled={!output}
-            className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-ink disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-on-accent hover:bg-accent-ink disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {copied ? "Copied" : "Copy for my agent"}
           </button>

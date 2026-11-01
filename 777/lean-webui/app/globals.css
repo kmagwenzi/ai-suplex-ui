@@ -34,8 +34,30 @@
   --accent-on-dark: #4cc38a;
   --error-on-dark: #f87171;
 
+  /* text on the solid accent / attention buttons */
+  --on-accent: #ffffff;
+  --on-attention: #ffffff;
+
   /* radii */
   --radius: 10px;
+}
+
+/* dark — the warm "night console" equivalent of the paper, same one accent */
+html.dark {
+  --bg: #12100e;
+  --surface: #1b1815;
+  --surface-2: #25211c;
+  --ink: #efe9df;
+  --ink-2: #c4beb2;
+  --muted: #90897b;
+  --border: #332f29;
+  --border-strong: #4b453c;
+  --accent: #4cc38a;
+  --accent-ink: #8fe0b5;
+  --on-accent: #08130c;
+  --attention: #e0a63f;
+  --on-attention: #1a1202;
+  --error: #f87171;
 }
 
 * {
@@ -59,7 +81,7 @@ body {
 /* browser surfaces carry the design too */
 ::selection {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 :focus-visible {

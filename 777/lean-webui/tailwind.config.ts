@@ -6,6 +6,7 @@ import type { Config } from "tailwindcss";
  * var() so the design system has one source of truth.
  */
 const config: Config = {
+  darkMode: "class",
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -27,6 +28,8 @@ const config: Config = {
         attention: "var(--attention)",
         error: "var(--error)",
         "error-on-dark": "var(--error-on-dark)",
+        "on-accent": "var(--on-accent)",
+        "on-attention": "var(--on-attention)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
