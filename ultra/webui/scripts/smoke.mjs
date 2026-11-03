@@ -39,6 +39,9 @@ function check(id, name, pass, observed) {
   const tag = BROKEN ? " (broken-vault run)" : "";
   console.log(`${pass ? "PASS" : "FAIL"}  ${String(id).padStart(2)}  ${name}${tag}  → ${observed}`);
 }
+function skip(id, name, note) {
+  console.log(`SKIP  ${String(id).padStart(2)}  ${name}  → ${note}`);
+}
 
 function sha256(buf) {
   return createHash("sha256").update(buf).digest("hex");
@@ -188,8 +191,8 @@ async function run() {
   check(14, "deep-ultra is text/plain, no ANSI", du.status === 200 && (du.contentType || "").includes("text/plain") && !duBody.includes("\x1b["), `status ${du.status}; type=${du.contentType}; ansi=${duBody.includes("\x1b[")}`);
 
   // C6/C15 need the broken-vault run
-  check(6, "missing vault → 501", false, "requires --broken-vault run");
-  check(15, "every failure visible", false, "requires --broken-vault run");
+  skip(6, "missing vault → 501", "requires --broken-vault run");
+  skip(15, "every failure visible", "requires --broken-vault run");
 
   console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`}`);
   process.exit(failures === 0 ? 0 : 1);
