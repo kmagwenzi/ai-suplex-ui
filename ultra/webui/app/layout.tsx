@@ -3,6 +3,8 @@ import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ShellNav } from "@/components/shell-nav";
 import { getTier } from "@/lib/shell/surfaces";
+import { loadCommands } from "@/lib/shell/commands";
+import { resolveVault } from "@/lib/shell/vault";
 
 const themeInit = `(function () {
   try {
@@ -34,19 +36,23 @@ export const metadata: Metadata = {
   icons: { icon: "/brand/logo.png" },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const tier = getTier();
+  // The catalogue is file-first chrome: read once here and hand it to the palette,
+  // so the palette keeps working when the API route cannot be reached.
+  const vault = tier === "ultra" ? resolveVault() : null;
+  const commands = vault ? (await loadCommands(vault)).commands : [];
   return (
     <html lang="en" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
       <body>
-        <ShellNav tier={tier}>{children}</ShellNav>
+        <ShellNav tier={tier} commands={commands}>{children}</ShellNav>
       </body>
     </html>
   );

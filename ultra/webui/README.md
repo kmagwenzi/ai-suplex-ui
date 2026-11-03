@@ -32,15 +32,37 @@ and render the output verbatim.
 
 ```bash
 npm run build
+npm test                                               # composer goldens · catalogue · matcher
 node scripts/smoke.mjs                                  # normal (:3100)
 node scripts/smoke.mjs http://127.0.0.1:3101 --broken-vault  # after AISUPLEX_VAULT=/nonexistent
+node scripts/smoke.mjs http://127.0.0.1:3102 --free-tier     # after AISUPLEX_TIER=free
 ```
+
+## Command bar (⌘K)
+
+Press **⌘K / Ctrl-K** anywhere in the shell. Type an intent; the bar maps it to **one
+command and three fields**, composes the command with the deterministic composer
+(`lib/shell/compose.ts`, ported verbatim from the 777 composer), and offers **Copy**.
+
+- **Fields, not prose.** The model returns `{command, sourceType, sourceValue, additional}`.
+  The composer owns the bytes; nothing is streamed and nothing is chat.
+- **No key = no dead end.** Without `AISUPLEX_MODEL_PROVIDER` + `AISUPLEX_MODEL_ID` + a
+  provider key, a deterministic matcher picks the command and the bar labels the result
+  `deterministic`. Removing the key changes depth, never structure.
+- **Copy, not Dispatch.** No dispatcher ships here. Copy is the action, and nothing in
+  the bar marks a stage done.
+- **Free tier.** `AISUPLEX_TIER=free` opens the palette to a named gate; no request fires.
+- **File-first catalogue.** The 17 `Prompt Patterns/AI-Suplex Commands/` files are read at
+  render and handed to the palette, so it still browses when the API route is unreachable.
+- **Editable.** Every mapped field (source type/value, additional) is editable and the
+  composed block re-renders per keystroke; the operator can always override the model.
 
 ## Write scope
 
 This lane owns `app/**`, `components/**`, `lib/shell/**`, `scripts/**`,
 `styles/**` (inline in `globals.css`) and the root config files. `lib/enrich/**`
-is the AI SDK lane (imports land at T012). The vault is read-only.
+is the AI SDK lane — this lane **imports** it (the ⌘K route) and never edits it.
+The vault is read-only.
 
 ## Brand
 

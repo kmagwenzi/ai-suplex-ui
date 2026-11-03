@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CommandBar } from "@/components/command-bar";
+import type { CommandDef } from "@/lib/shell/commands";
 import {
   SURFACES,
   gateReason,
@@ -58,7 +60,15 @@ function NavRow({ surface, tier, active }: { surface: Surface; tier: Tier; activ
   );
 }
 
-export function ShellNav({ tier, children }: { tier: Tier; children: React.ReactNode }) {
+export function ShellNav({
+  tier,
+  commands,
+  children,
+}: {
+  tier: Tier;
+  commands: CommandDef[];
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const active = (route: string) => (route === "/" ? pathname === "/" : pathname.startsWith(route));
 
@@ -77,7 +87,8 @@ export function ShellNav({ tier, children }: { tier: Tier; children: React.React
         <span className="rounded border border-white/15 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-widest text-navy-muted">
           {tier}
         </span>
-        <span className="ml-auto">
+        <span className="ml-auto flex items-center gap-2">
+          <CommandBar tier={tier} commands={commands} />
           <ThemeToggle />
         </span>
       </header>

@@ -9,13 +9,14 @@
 
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const BASE = process.argv[2] || `http://127.0.0.1:${process.env.PORT || 3100}`;
 const BROKEN = process.argv.includes("--broken-vault");
+const FREE = process.argv.includes("--free-tier");
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const WEBUI = path.resolve(__dir, "..");
@@ -121,6 +122,41 @@ const enrichStatus = sh(`git status --porcelain lib/enrich 2>/dev/null`, REPO).t
 const enrichDiff = sh(`git diff --stat lib/enrich 2>/dev/null`, REPO).trim();
 check(12, "enrich lane untouched", enrichStatus === "" && enrichDiff === "", enrichStatus || enrichDiff || "clean");
 
+// C24 · no chat, no streaming — the bar renders a command, not a reply
+const chatHits = sh(
+  `grep -rEn "useChat|useCompletion|streamText|ReadableStream" app components 2>/dev/null || true`,
+).trim();
+check(24, "no chat / no streaming", chatHits === "", chatHits || "clean");
+
+// C25 · the key never crosses the wire. The only enrichObject caller is the
+// server-side intent mapper (imported by the route), never a page or component.
+const keyHits = sh(`grep -rEn "API_KEY|apiKey" app components 2>/dev/null || true`).trim();
+const enrichCallers = sh(`grep -rlE "enrichObject\\(" app components lib/shell 2>/dev/null || true`)
+  .trim()
+  .split("\n")
+  .filter(Boolean)
+  .sort()
+  .join(",");
+check(
+  25,
+  "enrichment is server-side only",
+  keyHits === "" && enrichCallers === "lib/shell/command-intent.ts",
+  keyHits || `enrichObject callers: ${enrichCallers || "none"}`,
+);
+
+// C26 · copied ≠ done: exactly one fetch, to the mapping route; no write path
+const fetchCount = sh(`grep -c "fetch(" components/command-bar.tsx 2>/dev/null || true`).trim();
+const fetchTarget = sh(`grep -c 'fetch("/api/command-bar"' components/command-bar.tsx 2>/dev/null || true`).trim();
+const writeHits = sh(
+  `grep -rEn "writeFile|unlink|approve" components/command-bar.tsx 2>/dev/null || true`,
+).trim();
+check(
+  26,
+  "copied ≠ done (one fetch, no write path)",
+  fetchCount === "1" && fetchTarget === "1" && writeHits === "",
+  `fetches=${fetchCount} target=${fetchTarget} writes=${writeHits || "none"}`,
+);
+
 // C1 · a build artifact exists. Green-ness is `npm run build`'s own exit code — this
 // script cannot re-prove it, so it checks the thing it *can* see and says so.
 const buildIdPath = path.join(WEBUI, ".next", "BUILD_ID");
@@ -137,6 +173,34 @@ check(
 // ── HTTP checks ────────────────────────────────────────────────────────────
 
 async function run() {
+  if (FREE) {
+    let allGated = true;
+    let leaked = false;
+    let detail = "";
+    for (const route of ROUTES) {
+      const r = await http(route);
+      const body = r.body.toString();
+      if (r.status !== 200 || !body.includes("Ultra tier required")) {
+        allGated = false;
+        detail = `${route}→${r.status} (no tier gate)`;
+        break;
+      }
+      if (body.includes("Artifact Capture (Scratch Pad)")) leaked = true;
+    }
+    check(
+      27,
+      "free tier gated · no catalogue leak",
+      allGated && !leaked,
+      allGated
+        ? leaked
+          ? "catalogue names leaked into the free shell"
+          : "7/7 routes gated · catalogue absent"
+        : detail,
+    );
+    console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`} (free-tier run)`);
+    process.exit(failures === 0 ? 0 : 1);
+  }
+
   if (BROKEN) {
     // C6 · missing vault → 501 naming the var + path
     const r = await http("/artifacts/knowledge-canvas");
@@ -201,6 +265,84 @@ async function run() {
   // C5 · unknown surface → 404 naming the key
   const unk = await http("/artifacts/nope");
   check(5, "unknown surface → 404", unk.status === 404 && unk.body.toString().includes("nope"), `status ${unk.status}; body names key=${unk.body.toString().includes("nope")}`);
+
+  // C20 · the ⌘K trigger is chrome on every route (keyboard pass is visual)
+  let triggerOk = true;
+  let triggerDetail = "";
+  for (const route of ROUTES) {
+    const body = (await http(route)).body.toString();
+    if (!body.includes('aria-haspopup="dialog"') || !body.includes("⌘K")) {
+      triggerOk = false;
+      triggerDetail = `${route} carries no ⌘K trigger`;
+      break;
+    }
+  }
+  check(20, "⌘K trigger on all 7 routes", triggerOk, triggerOk ? "7/7 routes carry the trigger" : triggerDetail);
+
+  // C21 · byte identity — the shipped composer, run for real
+  const probeDir = mkdtempSync(path.join(tmpdir(), "ultra-compose-"));
+  const probeFile = path.join(probeDir, "probe.ts");
+  writeFileSync(
+    probeFile,
+    `import { baseTemplate, composeCommand } from ${JSON.stringify(path.join(WEBUI, "lib/shell/compose.ts"))};\n` +
+      `process.stdout.write(composeCommand(baseTemplate("Kickstart"), { type: "raw", value: "field one" }, "extra"));\n`,
+  );
+  const composed = sh(`./node_modules/.bin/tsx ${JSON.stringify(probeFile)}`);
+  rmSync(probeDir, { recursive: true, force: true });
+  const EXPECTED =
+    "AI-Suplex: Kickstart\nCONTENT\n  - Raw Content: field one\n\nADDITIONAL: extra";
+  check(
+    21,
+    "byte-identity (shared composer)",
+    composed === EXPECTED,
+    composed === EXPECTED ? "golden string matches the shipped composer" : JSON.stringify(composed.slice(0, 90)),
+  );
+
+  // C22/C23 · the route maps fields; no key → still a command
+  const intentResponse = await fetch(BASE + "/api/command-bar", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ intent: "kickstart the lane" }),
+  });
+  let mapping = null;
+  try {
+    mapping = await intentResponse.json();
+  } catch {
+    mapping = null;
+  }
+  check(
+    22,
+    "route returns fields only",
+    intentResponse.status === 200 && mapping !== null && !("rendered" in mapping),
+    `status ${intentResponse.status}; rendered=${mapping ? "rendered" in mapping : "no body"}`,
+  );
+  if (process.env.AISUPLEX_MODEL_PROVIDER) {
+    skip(23, "no key → deterministic", "a provider is configured in this shell");
+  } else {
+    check(
+      23,
+      "no key → deterministic, still a command",
+      mapping?.mode === "deterministic" && typeof mapping?.command === "string",
+      `mode=${mapping?.mode ?? "—"}; command=${mapping?.command ?? "—"}`,
+    );
+  }
+
+  // C28 · bad input fails loudly, naming the field
+  const postJson = (body) =>
+    fetch(BASE + "/api/command-bar", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  const empty = await postJson({ intent: "" });
+  const long = await postJson({ intent: "x".repeat(501) });
+  const emptyBody = await empty.text();
+  check(
+    28,
+    "failure is visible (400 names intent)",
+    empty.status === 400 && long.status === 400 && emptyBody.includes("intent"),
+    `${empty.status}/${long.status}; names intent=${emptyBody.includes("intent")}`,
+  );
 
   // C13 · opportunity JSON live with 5 keys
   const opp = await http("/api/surface/opportunity");
