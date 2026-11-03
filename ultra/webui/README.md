@@ -1,10 +1,46 @@
-# ultra/webui — the Ultra web surface (stub)
+# AI-Suplex Ultra — thin host
 
-**Paid surface. Not built.** This folder exists to mark the boundary, not to start work.
+A local thin host over the six deterministic AI-Suplex surfaces + the AS MC
+cockpit. It **embeds** the projections; it never re-renders them and never
+issues a network request to display them.
 
-Ultra capabilities — graph · insight · projection · shell · fleet — must extend the
-contract (`mcp v2` / a capability flag). They **never** leak into `mcp v1`, and nothing
-under `777/` may import from here.
+## Run
 
-When this surface is built, it consumes the same seam over Streamable HTTP on `127.0.0.1`,
-behind a bearer token — never a public port.
+```bash
+cd ultra/webui
+cp .env.example .env          # or export AISUPLEX_VAULT / AISUPLEX_TIER
+npm install
+npm run dev                   # binds http://127.0.0.1:3000
+```
+
+`AISUPLEX_VAULT` defaults to `~/Projects/AI-Suplex-OS/Deep-Ultra-OS/AI-Suplex-777`.
+`AISUPLEX_TIER` is `ultra` (default) or `free` — a capability flag, never a license.
+
+## The seam (5 lines)
+
+The four HTML surfaces mount over a **read-only, allowlisted passthrough route**
+(`app/artifacts/[surface]/route.ts`, Node runtime, `no-store`, byte-identical) —
+a browser cannot iframe a `file://` artifact from an `http://127.0.0.1` page.
+A surface key is an allowlist token, never a path segment (traversal impossible
+by construction). Opportunity Mapper and Deep Ultra run their tools server-side
+and render the output verbatim.
+
+## Acceptance
+
+```bash
+npm run build
+node scripts/smoke.mjs http://127.0.0.1:3000            # normal
+node scripts/smoke.mjs http://127.0.0.1:3000 --broken-vault  # after AISUPLEX_VAULT=/nonexistent
+```
+
+## Write scope
+
+This lane owns `app/**`, `components/**`, `lib/shell/**`, `scripts/**`,
+`styles/**` (inline in `globals.css`) and the root config files. `lib/enrich/**`
+is the AI SDK lane (imports land at T012). The vault is read-only.
+
+## Brand
+
+The logo is a **file to copy**, never a shape to redraw:
+`public/brand/logo.svg` ← `/home/kmagwenzi/Projects/ai-suplex-labs/assets/img/logo.svg`
+(byte-identical; sha256 must match). `logo.png` is the favicon.

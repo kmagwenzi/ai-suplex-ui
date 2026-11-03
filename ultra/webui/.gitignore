@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+next-env.d.ts
+
+# design evidence (Architect reads off disk; never committed)
+.review/
+.taste-skill/
