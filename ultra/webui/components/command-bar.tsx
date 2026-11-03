@@ -114,6 +114,8 @@ export function CommandBar({ tier, commands }: { tier: Tier; commands: CommandDe
         body: JSON.stringify({ intent: trimmed }),
       });
       if (!response.ok) {
+        // F5: the block must never present a previous mapping as this intent's answer.
+        setFields(EMPTY);
         setError(`POST /api/command-bar → HTTP ${response.status}`);
         return;
       }
@@ -127,6 +129,7 @@ export function CommandBar({ tier, commands }: { tier: Tier; commands: CommandDe
       setMode(result.mode === "ai" ? "ai" : "deterministic");
       setWhy(typeof result.why === "string" ? result.why : null);
     } catch (err) {
+      setFields(EMPTY);
       setError(`POST /api/command-bar → ${(err as Error).message}`);
     } finally {
       setPending(false);

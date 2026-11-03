@@ -130,7 +130,9 @@ const SYSTEM_PROMPT =
   "never describe what you would do, and never invent a command outside the list. Choose the " +
   "closest command and set `confidence` honestly; if nothing fits, pick the closest and use " +
   "confidence ≤ 0.4. `sourceValue` is a short pointer (a path, a URL, a one-line reference), " +
-  "never the whole artifact.";
+  "never the whole artifact. If you provide `sourceValue`, you must set `sourceType`. Leave " +
+  "`additional` empty when nothing fits — never put your rationale or an explanation in it, " +
+  "because it is copied verbatim into the command.";
 
 /**
  * Map an intent to a command + fields. With a key (or a test model) the model
