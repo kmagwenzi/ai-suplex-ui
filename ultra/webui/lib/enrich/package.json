@@ -9,14 +9,21 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "ai": "^7.0.162",
+    "@ai-sdk/openai": "^4.0.108",
+    "@ai-sdk/anthropic": "^4.0.96",
+    "@ai-sdk/deepseek": "^3.0.79",
+    "@ai-sdk/google": "^4.0.111"
+  },
+  "devDependencies": {
     "ai": "^7.0.162",
     "@ai-sdk/openai": "^4.0.108",
     "@ai-sdk/anthropic": "^4.0.96",
     "@ai-sdk/deepseek": "^3.0.79",
     "@ai-sdk/google": "^4.0.111",
-    "zod": "^4.6.7"
-  },
-  "devDependencies": {
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "@types/node": "^26.6.6"
