@@ -96,12 +96,24 @@ check(8, "no AI SDK import", aiHits === "", aiHits || "clean");
 const htmlCount = sh(`find public -name '*.html' 2>/dev/null | wc -l`).trim();
 check(9, "no .html in public/", htmlCount === "0", `${htmlCount} .html file(s)`);
 
-// C10 · cockpit locked, no file-service import
-const fsImport = sh(`grep -rEn "file-service" app/cockpit 2>/dev/null || true`).trim();
-check(10, "cockpit no file-service import", fsImport === "", fsImport || "clean");
+// C10 · the cockpit is file-first: it reads the vault through asm-cockpit/lib/file-service.mjs
+// and pulls in no database, no daemon and no bridge. (Pre-T010 this asserted the route was
+// locked and imported nothing; T010 is the task that wires it — the criterion follows the task.)
+const seamWired = sh(`grep -l "file-service" lib/shell/cockpit.ts 2>/dev/null || true`).trim() !== "";
+const cockpitUsesSeam = sh(`grep -c "loadCockpit" app/cockpit/page.tsx 2>/dev/null || true`).trim() !== "0";
+// Real imports only: prose that *mentions* a database is not a database.
+const dbHits = sh(
+  `grep -rEn "PrismaClient|new Pool\\(|createServer\\(|from ['\"]pg['\"]|postgres://" app/cockpit lib/shell/cockpit.ts components/cockpit-sections.tsx 2>/dev/null || true`,
+).trim();
+check(
+  10,
+  "cockpit is file-first (file-service, no db/daemon)",
+  seamWired && cockpitUsesSeam && dbHits === "",
+  dbHits || `file-service wired · page uses loadCockpit · no db/daemon imports`,
+);
 
-// C11 · cockpit renders no surface / reads no artifact
-const cockpitArtifact = sh(`grep -rEn "readArtifact|ARTIFACT_ALLOWLIST|artifactMeta|ArtifactFrame" app/cockpit 2>/dev/null || true`).trim();
+// C11 · cockpit ≠ intelligence: the ops route renders no artifact and no surface frame
+const cockpitArtifact = sh(`grep -rEn "readArtifact|ARTIFACT_ALLOWLIST|artifactMeta|ArtifactFrame|iframe" app/cockpit components/cockpit-sections.tsx 2>/dev/null || true`).trim();
 check(11, "cockpit reads no artifact", cockpitArtifact === "", cockpitArtifact || "clean");
 
 // C12 · enrich lane untouched
@@ -209,6 +221,24 @@ async function run() {
   const du = await http("/api/surface/deep-ultra");
   const duBody = du.body.toString();
   check(14, "deep-ultra is text/plain, no ANSI", du.status === 200 && (du.contentType || "").includes("text/plain") && !duBody.includes("\x1b["), `status ${du.status}; type=${du.contentType}; ansi=${duBody.includes("\x1b[")}`);
+
+  // C11b · the ops route serves no artifact frame and names its three sections
+  const cockpit = await http("/cockpit");
+  const cockpitBody = cockpit.body.toString();
+  const cockpitOk =
+    cockpit.status === 200 &&
+    !cockpitBody.includes("/artifacts/") &&
+    /Operator state/.test(cockpitBody) &&
+    /Approvals inbox/.test(cockpitBody) &&
+    /Active tasklists/.test(cockpitBody);
+  check(
+    11,
+    "cockpit reads no artifact",
+    cockpitOk,
+    cockpitOk
+      ? "no /artifacts/ · operator + approvals + tasklists present"
+      : `status ${cockpit.status}; artifact-ref=${cockpitBody.includes("/artifacts/")}`,
+  );
 
   // C6/C15 need the broken-vault run
   skip(6, "missing vault → 501", "requires --broken-vault run");

@@ -65,7 +65,6 @@ export const SURFACES: Surface[] = [
     route: "/cockpit",
     description: "The local ops surface — approvals, tasklists, vault log.",
     minTier: "ultra",
-    locked: true,
   },
 ];
 
@@ -78,7 +77,7 @@ export function getTier(): Tier {
 
 /** Locked (this phase) always gates; otherwise the tier decides. */
 export function isSurfaceAvailable(surface: Surface, tier: Tier): boolean {
-  if (surface.locked) return false;
+  if (surface.locked) return false; // retained for future gating; no surface is locked today
   if (tier === "free" && surface.minTier === "ultra") return false;
   return true;
 }
