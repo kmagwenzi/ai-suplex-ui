@@ -1,0 +1,24 @@
+{
+  "name": "ai-suplex-ultra-enrich",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI SDK Phase 2 — key-gated enrichment primitives + points (Spec — Ultra UI Integration (AI SDK) §12)",
+  "type": "module",
+  "scripts": {
+    "test": "tsx --test *.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ai": "^7.0.162",
+    "@ai-sdk/openai": "^4.0.108",
+    "@ai-sdk/anthropic": "^4.0.96",
+    "@ai-sdk/deepseek": "^3.0.79",
+    "@ai-sdk/google": "^4.0.111",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "@types/node": "^26.6.6"
+  }
+}
