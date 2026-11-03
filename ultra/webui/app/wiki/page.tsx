@@ -46,7 +46,7 @@ export default async function WikiPage() {
   const sources = wikiSourceRoots(vault);
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex h-full flex-col">
       <SurfaceHeader
         title="Living Wiki"
         description="The living wiki, embedded as-is with its markdown sources."
@@ -72,7 +72,7 @@ export default async function WikiPage() {
         </ul>
       </section>
 
-      <div className="min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
         <ArtifactFrame surface="wiki" title="Living Wiki" artifactPath={meta.path} />
       </div>
     </div>

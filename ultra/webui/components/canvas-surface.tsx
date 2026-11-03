@@ -55,9 +55,9 @@ export async function CanvasSurface({
   }
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex h-full flex-col">
       <SurfaceHeader title={title} description={description} meta={meta} />
-      <div className="min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
         {children ?? <ArtifactFrame surface={surfaceKey} title={title} artifactPath={meta.path} />}
       </div>
     </div>

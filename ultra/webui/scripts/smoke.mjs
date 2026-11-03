@@ -2,8 +2,8 @@
 /**
  * smoke.mjs — the acceptance runner for the Ultra thin host (T002–T009).
  * Run against a RUNNING server (it does not start one):
- *   node scripts/smoke.mjs http://127.0.0.1:3000            # normal (real vault)
- *   node scripts/smoke.mjs http://127.0.0.1:3000 --broken-vault  # against AISUPLEX_VAULT=/nonexistent
+ *   node scripts/smoke.mjs                                 # normal (real vault, :3100)
+ *   node scripts/smoke.mjs http://127.0.0.1:3101 --broken-vault  # against AISUPLEX_VAULT=/nonexistent
  * Prints one line per criterion: PASS/FAIL + the observed value.
  */
 
@@ -14,7 +14,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const BASE = process.argv[2] || "http://127.0.0.1:3000";
+const BASE = process.argv[2] || `http://127.0.0.1:${process.env.PORT || 3100}`;
 const BROKEN = process.argv.includes("--broken-vault");
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
@@ -71,8 +71,18 @@ const PORT = (() => {
     return "3000";
   }
 })();
-const ss = sh(`ss -ltn 2>/dev/null | grep ":${PORT} " || true`);
-check(2, "bind is loopback", !ss.includes(`0.0.0.0:${PORT}`), ss.trim().replace(/\s+/g, " ") || `(no :${PORT} socket / ss unavailable)`);
+const ss = sh(`ss -ltn 2>/dev/null | grep ":${PORT} " || true`).trim();
+// A missing socket is a FAIL, not a pass: this runner tests a server that must be up.
+const listening = ss.length > 0;
+const wildcard = ss.includes(`0.0.0.0:${PORT}`) || ss.includes(`[::]:${PORT}`);
+check(
+  2,
+  "bind is loopback",
+  listening && !wildcard,
+  listening
+    ? ss.replace(/\s+/g, " ")
+    : `nothing listening on :${PORT} — start the server first`,
+);
 
 // C7 · no static export
 const cfg = readFileSync(path.join(WEBUI, "next.config.mjs"), "utf8");
@@ -99,8 +109,18 @@ const enrichStatus = sh(`git status --porcelain lib/enrich 2>/dev/null`, REPO).t
 const enrichDiff = sh(`git diff --stat lib/enrich 2>/dev/null`, REPO).trim();
 check(12, "enrich lane untouched", enrichStatus === "" && enrichDiff === "", enrichStatus || enrichDiff || "clean");
 
-// C1 · build green (checked separately by `npm run build`)
-check(1, "build green", true, "run `npm run build` separately — see report");
+// C1 · a build artifact exists. Green-ness is `npm run build`'s own exit code — this
+// script cannot re-prove it, so it checks the thing it *can* see and says so.
+const buildIdPath = path.join(WEBUI, ".next", "BUILD_ID");
+const built = existsSync(buildIdPath);
+check(
+  1,
+  "build artifact present",
+  built,
+  built
+    ? `.next/BUILD_ID ${readFileSync(buildIdPath, "utf8").trim().slice(0, 12)}…`
+    : "no .next/BUILD_ID — run npm run build",
+);
 
 // ── HTTP checks ────────────────────────────────────────────────────────────
 

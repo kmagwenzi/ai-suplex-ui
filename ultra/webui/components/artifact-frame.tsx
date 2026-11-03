@@ -65,7 +65,7 @@ export function ArtifactFrame({
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative min-h-0 w-full flex-1">
       {state === "loading" && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-bg">
           <span className="text-sm text-muted">Loading {title}…</span>
@@ -74,7 +74,7 @@ export function ArtifactFrame({
       <iframe
         src={`/artifacts/${surface}`}
         title={title}
-        className={`h-full w-full border-0 ${state === "loaded" ? "visible" : "invisible"}`}
+        className={`absolute inset-0 h-full w-full border-0 ${state === "loaded" ? "visible" : "invisible"}`}
         onLoad={() => setState("loaded")}
         onError={() => setState("error")}
       />
