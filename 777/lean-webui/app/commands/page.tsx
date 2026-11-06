@@ -70,11 +70,11 @@ export default async function Commands({
         Commands
       </h1>
       <p className="mt-2 max-w-[62ch] text-[13px] text-ink-2">
-        The verbs. Seven dispatchable prompts, fetched live from{" "}
-        <code className="mono text-[12px]">prompts/list</code> and rendered
-        verbatim from <code className="mono text-[12px]">prompts/get</code> —
-        never re-authored here. The rest are listed honestly as{" "}
-        <span className="font-medium text-ink">copy-only</span>.
+        The verbs. Seven dispatchable prompts, listed live from{" "}
+        <code className="mono text-[12px]">prompts/list</code> and composed from
+        the fields you fill — <span className="font-medium text-ink">never a
+        pattern document, never re-authored here</span>. The rest are listed
+        honestly as <span className="font-medium text-ink">copy-only</span>.
       </p>
 
       <CommandCatalogue

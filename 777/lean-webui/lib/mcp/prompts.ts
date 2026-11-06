@@ -1,7 +1,12 @@
 /**
  * prompts.ts — the 7 `mcp v1` prompts as typed reads, via `prompts/list` and
- * `prompts/get`. The prompt text is the harness's own envelope + the verbatim
- * pattern body; the UI renders it and never paraphrases (Spec — MCP Contract §4).
+ * `prompts/get`.
+ *
+ * `listPrompts` is the catalogue's only read. `getPromptText` still returns the
+ * harness's envelope + pattern body, and **no screen calls it** — since T032 the
+ * composer builds commands from fields (`lib/command/envelope.ts`), and since
+ * T035 the body route is gone. It survives for the tests that pin the harness's
+ * own shape (smoke · catalogue parity); it is not a UI dependency.
  */
 
 import { getClient } from "./client";

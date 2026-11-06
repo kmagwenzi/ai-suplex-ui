@@ -40,13 +40,12 @@ otherwise uses its own `vault.json` link (`node link.js --show` to check).
 |---|---|
 | `/` | **Today** — the pipeline strip, the current stage, the next command, the memory pulse, Ultra named-and-locked |
 | `/pipeline` | the ten stages as a readable stack — state · inputs · command · output · gate |
-| `/commands` | the catalogue — 7 dispatchable prompts (via `prompts/list` + `prompts/get`) + 6 copy-only, with the composer |
+| `/commands` | the catalogue — 7 dispatchable prompts (via `prompts/list`) + 14 copy-only, with the field-driven composer |
 | `/session` | the active day — read-only tasklist + capture + close |
 | `/memory` | lessons + index + promote/approve/ritual (each gated) |
 | `/setup` | first run — vault detect, `link.js` docs, MCP latency, the sample-vault offer, the first-loop entry |
 | `/api/health` | live MCP latency for the header dot |
 | `/api/telemetry` | per-call name · ms · exit code + p50/p95 (`?debug=1` overlay) |
-| `/api/prompt` | one prompt's verbatim envelope + body (the composer fetches this lazily) |
 | `/api/session/capture` · `/api/session/close` | POST — `suplex_capture` · `suplex_close` |
 | `/api/memory/promote` · `/api/memory/approve` · `/api/memory/ritual` | POST — the gated writes |
 

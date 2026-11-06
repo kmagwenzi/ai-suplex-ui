@@ -1,10 +1,11 @@
 /**
  * prompts.ts — the command catalogue's facts + the composer's pure helpers.
  *
- * The catalogue mirrors the harness `prompts.js` via `prompts/list` + `prompts/get`;
- * the UI never re-authors a pattern. This module holds only the *metadata* the
- * prompt surface does not carry (stage, output, memory-loop classification) and
- * the composer's fill-in-the-blanks transform. No MCP calls, no reads, no clock.
+ * The catalogue comes from `prompts/list` — names, commands, descriptions. This
+ * module holds only the *metadata* the prompt surface does not carry (stage,
+ * output, memory-loop classification, the copy-only rows) and the prefill rules
+ * that turn live resources into editable starting values. No MCP calls, no reads,
+ * no clock. Since T032 the command text itself is built by `lib/command/envelope.ts`.
  */
 
 import type { Instance, StageId, TasklistSummary } from "./types";
