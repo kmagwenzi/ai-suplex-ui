@@ -1,5 +1,5 @@
 import { readConsoleData } from "@/lib/mcp/resources";
-import { getPromptText, listPrompts } from "@/lib/mcp/prompts";
+import { listPrompts } from "@/lib/mcp/prompts";
 import {
   buildCard,
   COPY_ONLY_COMMANDS,
@@ -31,15 +31,10 @@ export default async function Commands({
           : "suplex://context unavailable",
       );
     }
+    // T034: `prompts/list` only. The seven pattern bodies are no longer read on
+    // page load — the memory-loop label is declared metadata, pinned by a test.
     const items = await listPrompts();
-    const bodies = await Promise.all(
-      items.map((p) =>
-        getPromptText(p.name)
-          .then((r) => r.text)
-          .catch(() => null),
-      ),
-    );
-    cards = items.map((item, i) => buildCard(item, bodies[i]));
+    cards = items.map((item) => buildCard(item));
     prefill = {
       cycle: data.brief.cycle,
       week: data.brief.week,

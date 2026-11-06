@@ -48,6 +48,25 @@ export const PROMPT_OUTPUT: Record<string, string> = {
 export type MemoryLoop = "yes" | "conditional" | "no" | null;
 
 /**
+ * The memory loop each `mcp v1` prompt declares, as metadata the console owns.
+ *
+ * T034: this used to be derived by fetching all seven pattern bodies on every
+ * page load — 30 KB of documents read only to label a field. The classification
+ * is stable, so it is declared here and **pinned to the live patterns by a
+ * test** (`lib/catalogue.test.ts`); if a pattern changes its loop, that test
+ * goes red, not a label quietly wrong.
+ */
+export const PROMPT_MEMORY_LOOP: Record<string, MemoryLoop> = {
+  "session-start": "yes",
+  "session-end-report": "conditional",
+  "artifact-capture": "yes",
+  "save-context": "conditional",
+  "tasklist-generation": "conditional",
+  "weekly-review": "yes",
+  "b-bomb-promotion": "yes",
+};
+
+/**
  * Classify the pattern's MEMORY LOOP section. `null` = the pattern does not
  * declare one — shown as "—", never invented.
  */
@@ -234,7 +253,7 @@ export interface PromptCard {
   executorLabel: string;
 }
 
-export function buildCard(item: PromptListItem, body: string | null): PromptCard {
+export function buildCard(item: PromptListItem): PromptCard {
   const stageId = PROMPT_STAGE[item.name];
   const meta = STAGE_META.find((m) => m.id === stageId);
   return {
@@ -244,48 +263,63 @@ export function buildCard(item: PromptListItem, body: string | null): PromptCard
     arguments: item.arguments,
     stageName: meta?.name ?? "—",
     output: PROMPT_OUTPUT[item.name] ?? meta?.output ?? "—",
-    memoryLoop: body ? memoryLoopKind(body) : null,
+    memoryLoop: PROMPT_MEMORY_LOOP[item.name] ?? null,
     executorGlyph: meta ? EXECUTOR_GLYPH[meta.executor] : "—",
     executorLabel: meta ? EXECUTOR_LABEL[meta.executor] : "—",
   };
 }
 
-// ── the six copy-only commands (mcp v2 `commands` surface — listed, never dispatched) ──
+// ── the copy-only commands (mcp v2 `commands` surface — listed, never dispatched) ──
 export interface CopyOnlyCommand {
   command: string;
   trigger: string;
   link: string; // vault deep link (resolved against the real vault)
 }
 
+/**
+ * Every `⚡ Command — *.md` the vault holds that is **not** one of the seven
+ * dispatchable prompts, plus the one documented pattern-backed command.
+ *
+ * T034: derived from the vault, not curated by hand — the old six-row list both
+ * dropped real commands (Cycle Plan, Weekly Plan, B-Bomb Hunt) and linked to the
+ * wrong file (Weekly Ritual pointed at the Kick-start doc). The partition is
+ * asserted in `lib/catalogue.test.ts`: 20 command docs = 3 dispatchable + 14
+ * copy-only + 3 Ultra-only + 1 previous generation. Nothing silently dropped,
+ * nothing invented.
+ */
 export const COPY_ONLY_COMMANDS: CopyOnlyCommand[] = [
-  {
-    command: "Kickstart",
-    trigger: "AI-Suplex: Kickstart",
-    link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Kickstart.md",
-  },
-  {
-    command: "Weekly Ritual",
-    trigger: "AI-Suplex: Weekly Ritual",
-    link: "AI-Suplex Kick-start/Weekly Reset – The Tuesday Ritual.md",
-  },
-  {
-    command: "Batch Insight",
-    trigger: "AI-Suplex: Batch Insight",
-    link: "Prompt Patterns/📄 Pattern - Batch Insight Generation.md",
-  },
-  {
-    command: "Note Capture",
-    trigger: "AI-Suplex: Note Capture",
-    link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Note Capture.md",
-  },
-  {
-    command: "Outreach Capture",
-    trigger: "AI-Suplex: Outreach Capture",
-    link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Outreach Capture.md",
-  },
-  {
-    command: "Deep Ultra Mode",
-    trigger: "AI-Suplex: Deep Ultra Mode (Arcade · Operative · Pro)",
-    link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Deep Ultra Mode (Operative).md",
-  },
+  { command: "Artifact Capture (YouTube)", trigger: "AI-Suplex: Artifact Capture (youtube)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture (YouTube).md" },
+  { command: "Artifact Capture (Markdown)", trigger: "AI-Suplex: Artifact Capture (Markdown)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture(Markdown).md" },
+  { command: "Artifact Capture (file)", trigger: "AI-Suplex: Artifact Capture (file)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture(Non Markdown).md" },
+  { command: "Artifact Capture (Scratch Pad)", trigger: "AI-Suplex: Artifact Capture (Scratch Pad)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture(Scratch Pad).md" },
+  { command: "B-Bomb Hunt", trigger: "AI-Suplex: B-Bomb Hunt", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — B-Bomb Hunt.md" },
+  { command: "Batch Insight", trigger: "AI-Suplex: Batch Insight", link: "Prompt Patterns/📄 Pattern - Batch Insight Generation.md" },
+  { command: "Cycle Plan", trigger: "AI-Suplex: Cycle Plan", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Cycle Plan.md" },
+  { command: "Cycle Review", trigger: "AI-Suplex: Cycle Review", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Cycle Review.md" },
+  { command: "Kickstart", trigger: "AI-Suplex: Kickstart", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Kickstart.md" },
+  { command: "Note Capture", trigger: "AI-Suplex: Note Capture", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Note Capture.md" },
+  { command: "Outreach Capture", trigger: "AI-Suplex: Outreach Capture", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Outreach Capture.md" },
+  { command: "Weekly Plan", trigger: "AI-Suplex: Weekly Plan", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Weekly Plan.md" },
+  { command: "Weekly Review", trigger: "AI-Suplex: Weekly Review", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Weekly Review.md" },
+  { command: "Weekly Ritual", trigger: "AI-Suplex: Weekly Ritual", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Weekly Ritual.md" },
+];
+
+/**
+ * Named, never listed in the free console: the Ultra-only commands do not ship
+ * in 777 (Spec — Production & Editions). The catalogue test proves they are
+ * accounted for, so "not shown" never means "forgotten".
+ */
+export const ULTRA_ONLY_COMMANDS: CopyOnlyCommand[] = [
+  { command: "Deep Ultra Mode (Arcade)", trigger: "AI-Suplex: Deep Ultra Mode (Arcade)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Deep Ultra Mode (Arcade).md" },
+  { command: "Deep Ultra Mode (Operative)", trigger: "AI-Suplex: Deep Ultra Mode (Operative)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Deep Ultra Mode (Operative).md" },
+  { command: "Deep Ultra Mode (Pro)", trigger: "AI-Suplex: Deep Ultra Mode (Pro)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Deep Ultra Mode (Pro).md" },
+];
+
+/**
+ * The previous-generation Artifact Capture doc is superseded by the dispatchable
+ * prompt — listing it would put two different "AI-Suplex: Artifact Capture"
+ * entries on one screen. Kept here so the partition accounts for it.
+ */
+export const DEPRECATED_COMMANDS: CopyOnlyCommand[] = [
+  { command: "Artifact Capture (Previous Generation)", trigger: "AI-Suplex: Artifact Capture (Previous Generation)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture(Previous Generation).md" },
 ];
