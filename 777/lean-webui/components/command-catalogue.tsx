@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   SOURCE_LABEL,
-  composePrompt,
+  SOURCE_TYPES,
+  composeCommand,
+  isEmptySelection,
+  retargetSourceValue,
+  type SourceType,
+} from "@/lib/command/envelope";
+import {
   prefillFor,
   vaultFileOptions,
   type CopyOnlyCommand,
+  type Prefill,
   type PromptCard,
   type PrefillInput,
-  type SourceType,
 } from "@/lib/prompts";
 
 const MEMORY_LOOP_LABEL: Record<string, string> = {
@@ -18,13 +24,10 @@ const MEMORY_LOOP_LABEL: Record<string, string> = {
   no: "no",
 };
 
-const SOURCE_TYPES: { id: SourceType; label: string }[] = [
-  { id: "vault-file", label: "File Reference" },
-  { id: "raw", label: "Raw Content" },
-  { id: "chat-reference", label: "Chat Reference" },
-];
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** The command catalogue: 7 dispatchable prompts + 6 copy-only, with the composer. */
+/** The command catalogue: 7 dispatchable prompts + the copy-only rows, with the panel. */
 export function CommandCatalogue({
   cards,
   prefill,
@@ -77,11 +80,7 @@ export function CommandCatalogue({
       </section>
 
       {compose ? (
-        <Composer
-          card={compose}
-          prefill={prefill}
-          onClose={() => setCompose(null)}
-        />
+        <Composer card={compose} prefill={prefill} onClose={() => setCompose(null)} />
       ) : null}
     </>
   );
@@ -177,6 +176,30 @@ function CopyOnlyRow({ c }: { c: CopyOnlyCommand }) {
   );
 }
 
+// ── the panel ────────────────────────────────────────────────────────────────
+
+/** One state object. The command is a pure function of it — nothing else. */
+interface Fields {
+  sourceType: SourceType | null;
+  sourceValue: string;
+  additional: string;
+}
+
+/**
+ * A prefill is a starting value, and the picker may only show what the state
+ * holds. A `vault-file` prefill that is not among the picker's own options is
+ * therefore dropped at mount (never rendered as an empty control over a full
+ * state) — the note says why.
+ */
+function initialFields(p: Prefill, paths: string[]): Fields {
+  const resolvable = p.type !== "vault-file" || p.value === "" || paths.includes(p.value);
+  return {
+    sourceType: p.type,
+    sourceValue: resolvable ? p.value : "",
+    additional: "",
+  };
+}
+
 function Composer({
   card,
   prefill,
@@ -186,78 +209,95 @@ function Composer({
   prefill: PrefillInput;
   onClose: () => void;
 }) {
-  const [body, setBody] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [sourceType, setSourceType] = useState<SourceType | null>(null);
-  const [sourceValue, setSourceValue] = useState("");
-  const [note, setNote] = useState<string | null>(null);
-  const [additional, setAdditional] = useState("");
+  const files = useMemo(() => vaultFileOptions(prefill), [prefill]);
+  const paths = useMemo(() => files.map((f) => f.path), [files]);
+  const prefillValue = useMemo(() => prefillFor(card.name, prefill), [card.name, prefill]);
+
+  const [fields, setFields] = useState<Fields>(() => initialFields(prefillValue, paths));
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+
+  const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
-  const files = vaultFileOptions(prefill);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const r = await fetch(`/api/prompt?name=${encodeURIComponent(card.name)}`);
-        const j = await r.json();
-        if (!active) return;
-        if (!r.ok) {
-          setError(j?.error ?? "could not load the pattern");
-          return;
-        }
-        setBody(j.text);
-        const p = prefillFor(card.name, prefill);
-        setSourceType(p.type);
-        setSourceValue(p.value);
-        setNote(p.note);
-      } catch (e) {
-        if (active) setError(e instanceof Error ? e.message : String(e));
-      }
-    })();
-    return () => {
-      active = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card.name]);
+  const composed = useMemo(
+    () =>
+      composeCommand(
+        card.command,
+        { type: fields.sourceType, value: fields.sourceValue },
+        fields.additional,
+      ),
+    [card.command, fields],
+  );
 
   useEffect(() => {
     closeRef.current?.focus();
   }, []);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const output = body
-    ? composePrompt(body, { type: sourceType, value: sourceValue }, additional)
-    : null;
+  function chooseSourceType(next: SourceType) {
+    setFields((current) => ({
+      ...current,
+      sourceType: next,
+      sourceValue: retargetSourceValue(current.sourceValue, next, paths),
+    }));
+    setCopied(false);
+  }
 
-  const copy = async () => {
-    if (!output) return;
+  async function copy() {
     try {
-      await navigator.clipboard.writeText(output);
+      await navigator.clipboard.writeText(composed);
       setCopied(true);
+      setCopyFailed(false);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* clipboard unavailable — the mono block is still selectable */
+      setCopyFailed(true);
     }
-  };
+  }
+
+  const unfilled = isEmptySelection({
+    type: fields.sourceType,
+    value: fields.sourceValue,
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-ink/40" onClick={onClose} aria-hidden />
       <div
-        className="absolute inset-0 bg-ink/40"
-        onClick={onClose}
-        aria-hidden
-      />
-      <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Compose ${card.command}`}
@@ -284,118 +324,126 @@ function Composer({
         </header>
 
         <div className="flex-1 overflow-auto px-5 py-5">
-          {error ? (
-            <div className="rounded-lg border border-border bg-surface-2 p-4">
-              <div className="text-[13px] font-medium text-error">
-                The pattern could not be loaded
-              </div>
-              <p className="mono mt-1 break-words text-[12px] text-muted">{error}</p>
+          <fieldset>
+            <legend className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
+              source
+            </legend>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {SOURCE_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => chooseSourceType(type)}
+                  aria-pressed={fields.sourceType === type}
+                  className={
+                    "rounded-md border px-3 py-1.5 text-[13px] " +
+                    (fields.sourceType === type
+                      ? "border-accent bg-accent text-on-accent"
+                      : "border-border bg-surface text-ink-2 hover:text-ink")
+                  }
+                >
+                  {SOURCE_LABEL[type]}
+                </button>
+              ))}
             </div>
-          ) : !body ? (
-            <div className="mono text-[12px] text-muted">loading pattern…</div>
-          ) : (
-            <>
-              <label className="block">
-                <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                  source
-                </span>
-                <span className="mt-2 flex flex-wrap gap-1.5">
-                  {SOURCE_TYPES.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setSourceType(t.id)}
-                      aria-pressed={sourceType === t.id}
-                      className={
-                        "rounded-md border px-3 py-1.5 text-[13px] " +
-                        (sourceType === t.id
-                          ? "border-accent bg-accent text-on-accent"
-                          : "border-border bg-surface text-ink-2 hover:text-ink")
-                      }
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </span>
-              </label>
+          </fieldset>
 
-              {sourceType === "vault-file" ? (
-                <label className="mt-4 block">
-                  <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                    file
-                  </span>
-                  <select
-                    value={files.some((f) => f.path === sourceValue) ? sourceValue : ""}
-                    onChange={(e) => setSourceValue(e.target.value)}
-                    className="mt-1.5 block w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                  >
-                    <option value="">choose a file…</option>
-                    {files.map((f) => (
-                      <option key={f.path} value={f.path}>
-                        {f.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : sourceType ? (
-                <label className="mt-4 block">
-                  <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                    {SOURCE_LABEL[sourceType]}
-                  </span>
-                  <textarea
-                    value={sourceValue}
-                    onChange={(e) => setSourceValue(e.target.value)}
-                    rows={5}
-                    className="mt-1.5 block w-full rounded-md border border-border bg-surface px-3 py-2 font-mono text-[13px] text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                  />
-                </label>
-              ) : null}
+          {fields.sourceType === "vault-file" ? (
+            <label className="mt-4 block">
+              <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
+                file
+              </span>
+              <select
+                value={fields.sourceValue}
+                onChange={(event) =>
+                  setFields((current) => ({ ...current, sourceValue: event.target.value }))
+                }
+                className="mt-1.5 block w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <option value="">choose a file…</option>
+                {files.map((file) => (
+                  <option key={file.path} value={file.path}>
+                    {file.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : fields.sourceType ? (
+            <label className="mt-4 block">
+              <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
+                {SOURCE_LABEL[fields.sourceType]}
+              </span>
+              <textarea
+                value={fields.sourceValue}
+                onChange={(event) =>
+                  setFields((current) => ({ ...current, sourceValue: event.target.value }))
+                }
+                rows={5}
+                placeholder={
+                  fields.sourceType === "chat-reference"
+                    ? "describe the earlier conversation"
+                    : "paste the content"
+                }
+                className="mt-1.5 block w-full rounded-md border border-border bg-surface px-3 py-2 font-mono text-[13px] text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              />
+            </label>
+          ) : null}
 
-              {note ? (
-                <p className="mt-3 text-[12px] text-muted">{note}</p>
-              ) : null}
+          {prefillValue.note ? (
+            <p className="mt-3 text-[12px] text-muted">{prefillValue.note}</p>
+          ) : null}
 
-              <label className="mt-5 block">
-                <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                  ADDITIONAL
-                </span>
-                <input
-                  type="text"
-                  value={additional}
-                  onChange={(e) => setAdditional(e.target.value)}
-                  placeholder="Save to …, Skip memory loop, Run <script>"
-                  className="mt-1.5 block w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                />
-              </label>
+          <label className="mt-5 block">
+            <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
+              ADDITIONAL
+            </span>
+            <input
+              type="text"
+              value={fields.additional}
+              onChange={(event) =>
+                setFields((current) => ({ ...current, additional: event.target.value }))
+              }
+              placeholder="Save to …, Skip memory loop, Run <script>"
+              className="mt-1.5 block w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            />
+          </label>
 
-              <div className="mt-6">
-                <div className="flex items-baseline justify-between">
-                  <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                    output
-                  </span>
-                  <span className="mono text-[11px] text-muted">
-                    exact pattern text · copy-only
-                  </span>
-                </div>
-                <pre className="mono mt-2 max-h-[40vh] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-surface-2 p-4 text-[12px] leading-relaxed text-ink">
-                  {output}
-                </pre>
-              </div>
-            </>
-          )}
+          <div className="mt-6">
+            <div className="flex items-baseline justify-between">
+              <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
+                output
+              </span>
+              <span className="mono text-[11px] text-muted">
+                {unfilled ? "unfilled — the placeholders show what remains" : "5 lines · copy-only"}
+              </span>
+            </div>
+            <pre
+              data-testid="composed-command"
+              className="mono mt-2 max-h-[40vh] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-surface-2 p-4 text-[12px] leading-relaxed text-ink"
+            >
+              {composed}
+            </pre>
+          </div>
         </div>
 
-        <footer className="flex items-center justify-between border-t border-border px-5 py-4">
+        <footer className="flex items-center justify-between gap-4 border-t border-border px-5 py-4">
           <div className="text-[12px] text-muted">
-            Copy hands the exact words to your agent. A stage turns{" "}
-            <span className="font-medium text-ink">done</span> only when its output
-            file exists.
+            {copyFailed ? (
+              <span className="text-error">
+                Clipboard unavailable — select the block and copy it.
+              </span>
+            ) : (
+              <>
+                Copy hands the exact words to your agent. A stage turns{" "}
+                <span className="font-medium text-ink">done</span> only when its
+                output file exists.
+              </>
+            )}
           </div>
           <button
             type="button"
             onClick={copy}
-            disabled={!output}
-            className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-on-accent hover:bg-accent-ink disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="shrink-0 rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-on-accent hover:bg-accent-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {copied ? "Copied" : "Copy for my agent"}
           </button>

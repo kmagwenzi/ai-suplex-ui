@@ -110,6 +110,48 @@ describe("prefillFor — save-context", () => {
     assert.equal(p.type, "vault-file");
     assert.equal(p.value, "Context Kick-start/Active/daily-tasks.md");
   });
+
+  it("resolves a bare filename from suplex://threads to its Active path (T033)", () => {
+    const p = prefillFor(
+      "save-context",
+      prefillInput({
+        threads: [
+          {
+            thread: "project-tasks",
+            ref: "9",
+            slug: "777-command-panel",
+            singleton: false,
+            file: "project-tasks-9-777-command-panel.md", // the resource's real shape
+            status: "closed",
+            opened: "2026-11-06T20:45",
+          },
+          {
+            thread: "daily-tasks",
+            ref: null,
+            slug: null,
+            singleton: true,
+            file: "daily-tasks.md",
+            status: "open",
+            opened: "2026-11-06T09:00",
+          },
+        ],
+      }),
+    );
+    assert.equal(p.value, "Context Kick-start/Active/daily-tasks.md");
+  });
+
+  it("prefers an open instance over a closed one left in Active", () => {
+    const p = prefillFor(
+      "save-context",
+      prefillInput({
+        threads: [
+          { thread: "project-tasks", ref: "3", slug: "lean-webui", singleton: false, file: "project-tasks-3-lean-webui.md", status: "closed", opened: "2026-10-31T09:57" },
+          { thread: "project-tasks", ref: "9", slug: "777-command-panel", singleton: false, file: "project-tasks-9-777-command-panel.md", status: "open", opened: "2026-11-06T20:45" },
+        ],
+      }),
+    );
+    assert.equal(p.value, "Context Kick-start/Active/project-tasks-9-777-command-panel.md");
+  });
 });
 
 describe("prefillFor — weekly-review and the unavailable cases", () => {

@@ -117,9 +117,23 @@ export interface PrefillInput {
 }
 
 /**
+ * An instance's vault path. The `suplex://threads` resource reports the bare
+ * filename (`daily-tasks.md`); a command needs the resolvable path. Both shapes
+ * are accepted, so the prefill and the picker always agree (T029/3, T033).
+ */
+export function instancePath(file: string): string {
+  const clean = file.trim();
+  return clean.includes("/") ? clean : `Context Kick-start/Active/${clean}`;
+}
+
+/**
  * The starting source for a command, from what `mcp v1` actually exposes.
  * Every pre-fill is editable — never a locked auto-answer. Where the resource
  * does not exist on the read surface, the note says so instead of inventing it.
+ *
+ * Invariant (T033): a `vault-file` prefill is **always** a path this module
+ * would also offer in `vaultFileOptions` — a prefill the picker cannot show is
+ * a lying control, and a bare basename the agent cannot resolve is a dead one.
  */
 export function prefillFor(name: string, input: PrefillInput): Prefill {
   switch (name) {
@@ -137,11 +151,11 @@ export function prefillFor(name: string, input: PrefillInput): Prefill {
       return { type: null, value: "", note: "no active daily tasklist for today" };
     }
     case "save-context": {
-      const inst = input.threads[0];
+      const inst = input.threads.find((t) => t.status === "open") ?? input.threads[0];
       if (inst) {
         return {
           type: "vault-file",
-          value: inst.file,
+          value: instancePath(inst.file),
           note: `the ${inst.thread}${inst.ref ? ` · ${inst.ref}` : ""} instance`,
         };
       }
@@ -196,7 +210,7 @@ export function vaultFileOptions(input: PrefillInput): VaultFileOption[] {
       label: t.title || t.file,
       path: `Tasklists/${t.file}`,
     })),
-    ...input.threads.map((i) => ({ label: i.file, path: i.file })),
+    ...input.threads.map((i) => ({ label: i.file, path: instancePath(i.file) })),
     {
       label: "Active Mission Context",
       path: "AI-Suplex Kick-start/Context Kick-start/Active Mission Context.md",
