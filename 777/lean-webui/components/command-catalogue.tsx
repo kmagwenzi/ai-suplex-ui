@@ -409,12 +409,12 @@ function Composer({
           </label>
 
           <div className="mt-6">
-            <div className="flex items-baseline justify-between">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
                 output
               </span>
               <span className="mono text-[11px] text-muted">
-                {unfilled ? "unfilled — the placeholders show what remains" : "5 lines · copy-only"}
+                {unfilled ? "unfilled — placeholders show what remains" : "5 lines · copy-only"}
               </span>
             </div>
             <pre
@@ -426,7 +426,7 @@ function Composer({
           </div>
         </div>
 
-        <footer className="flex items-center justify-between gap-4 border-t border-border px-5 py-4">
+        <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-border px-5 py-4">
           <div className="text-[12px] text-muted">
             {copyFailed ? (
               <span className="text-error">
@@ -443,7 +443,7 @@ function Composer({
           <button
             type="button"
             onClick={copy}
-            className="shrink-0 rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-on-accent hover:bg-accent-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="ml-auto shrink-0 rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-on-accent hover:bg-accent-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {copied ? "Copied" : "Copy for my agent"}
           </button>
