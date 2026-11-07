@@ -18,21 +18,72 @@ consuming **`mcp v1` over stdio only**.
 3. **A copied command is not `done`; the output file is.** A stage flips only
    when the vault holds its output — never when a button is pressed.
 
-## Run
+## Install and run
 
 ```bash
+# 1 · Node 20 or newer — the preflight stops the build otherwise
+node --version
+
+# 2 · one command
 npm install
-npm run dev      # or: npm run ui — Node >= 20, no node:sqlite
+npm run ui          # → http://localhost:3000
+
+# 3 · first run: open /setup, point it at your vault, run the loop
 ```
+
+**The one command is `npm run ui`.** There is no published `npx` path yet — this
+package is `private` until launch, so `npx` would resolve to nothing. When the
+777 edition ships, `npx ai-suplex-ui` becomes the entry; until then, clone and run.
+
+**The harness.** The console spawns **one** persistent `node server.js` and keeps
+it warm for the life of the app — never per request. It resolves it by
+`HARNESS_PATH`, defaulting to `../../../ai-suplex-harness/server.js` relative to
+this app. If that is not where yours lives:
+
+```bash
+HARNESS_PATH=/absolute/path/to/ai-suplex-harness/server.js npm run ui
+```
+
+`AISUPLEX_VAULT` is passed straight through; the harness otherwise uses its own
+`vault.json` link (`node link.js --show` to check). A missing harness is a
+**named** error on screen, never a blank page — and `npm run ui` warns before
+the first render.
 
 > Fonts (Space Grotesk + IBM Plex Mono) are downloaded and self-hosted by
 > `next/font/google` at **build time** — the first `npm run build` needs network.
 
-The console spawns **one** persistent harness process (`node server.js`) and
-keeps it warm for the life of the app — never per request. It resolves the
-harness by `HARNESS_PATH`, defaulting to `../../../ai-suplex-harness/server.js`
-relative to this app. `AISUPLEX_VAULT` is passed straight through; the harness
-otherwise uses its own `vault.json` link (`node link.js --show` to check).
+## Measure it
+
+```bash
+npm run bench        # 20 samples per read, 5 per tool — enforces the §11 budgets
+npm run bench -- 50  # more samples
+```
+
+The bench exits non-zero when a budget is missed, so "MCP is slow" is a number,
+not an opinion. Measured 2026-11-07 (Node 22, warm server):
+
+| Read | p95 | Budget |
+|---|---|---|
+| `suplex://context` | 100 ms | < 150 |
+| `suplex://tasklists` | 106 ms | < 150 |
+| `suplex://threads` | 99 ms | < 150 |
+| `suplex://approvals` | **314 ms** | < 150 ✗ |
+| `suplex://mission` · `memory/index` · `memory/lessons` | 1–7 ms | < 150 |
+| `prompts/list` | 1 ms | < 100 |
+| tool `suplex_status` / `suplex_tasklist_next` | 120 / 138 ms | < 2 s |
+
+**`suplex://approvals` is the one breach** — 314 ms because the harness shells
+`3lm approvals --json`, which scores 477 lessons on every call. It is a
+harness cost, not an app cost; the fix is a short-lived cache (or a `--fast`
+path) inside `ai-suplex-harness`, not a second implementation of memory here.
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| "could not start the MCP server" | `HARNESS_PATH` wrong or harness not installed | set `HARNESS_PATH` to the absolute `server.js` |
+| Every component unhydrated, `__webpack_modules__[moduleId] is not a function` | `next build` ran while `next dev` held `.next` | stop dev, `rm -rf .next`, restart — **never build under a live dev server** |
+| Port in use | another dev server | `npm run ui -- -p 3007` |
 
 ## Routes
 
@@ -80,8 +131,9 @@ never in this repo.
 ## Verify
 
 ```bash
-npm test                  # stage-state derivation (tsx + node:test)
+npm test                  # 74 tests — stage state · gates · envelope · contracts · catalogue · contract subset · MCP smoke · failed server
 npm run build             # Next.js build + the Node 20 preflight
-grep -rn "node:sqlite" app lib components scripts || echo "GATE — no sqlite"
-grep -rn "vault-index\|/lib/3lm\|knowledge-graph" app lib components || echo "GATE — pure window"
+npm run bench             # §11 budgets, enforced
+grep -rn "node:sqlite" app lib components --include='*.ts' --include='*.tsx' || echo "GATE — no sqlite"
+grep -rE 'readFile|readdir|node:fs' app lib components --include='*.ts' --include='*.tsx' --exclude='*.test.ts' && echo "FAIL — file reads in the UI" || echo "GATE — MCP-only"
 ```

@@ -5,7 +5,7 @@
  * AI-Suplex 777 runs on Node >= 20 with no `node:sqlite` on the free path.
  * This gate stops the build on Node < 20 and greps the app for `node:sqlite`.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -39,6 +39,18 @@ try {
     throw e;
   }
   // grep exit 1 = no matches = clean.
+}
+
+// Name the harness before the first screen does — a missing server is the #1
+// first-run surprise, and the fix is one env var (never a hardcoded path).
+const harness =
+  process.env.HARNESS_PATH ??
+  path.resolve(appRoot, "..", "..", "..", "ai-suplex-harness", "server.js");
+if (!existsSync(harness)) {
+  console.warn(
+    `⚠ harness not found at ${harness}\n` +
+      `  set HARNESS_PATH=/absolute/path/to/ai-suplex-harness/server.js (see README → Install)`,
+  );
 }
 
 console.log(`Node ${process.version} — ok (>= ${REQUIRED_MAJOR}), no node:sqlite.`);
