@@ -1,16 +1,19 @@
 /**
- * envelope.ts — the command envelope (T031).
+ * envelope.ts — the command envelope (T031, generalised at T041).
  *
- * A command is **five lines**: the trigger, `CONTENT`, one source line, a blank,
- * and `ADDITIONAL`. Nothing more.
+ * A command is **the trigger, `CONTENT`, one line per declared field, a blank,
+ * and `ADDITIONAL`**. Nothing more.
  *
  * Ported from `ultra/webui/lib/shell/compose.ts` with one deliberate difference:
  * this composer builds the envelope **from fields** instead of patching a
- * document. It cannot carry a pattern body, because it never accepts one —
- * the defect T029 found is structurally impossible here, not merely avoided.
+ * document. It cannot carry a pattern body, because it never accepts one.
  *
- * Pure: no imports, no clock, no I/O. Every surface that composes a command
- * (the panel, an API route, a test) calls this and owns zero bytes of its own.
+ * T041: CONTENT is no longer forced to one line. Save Context needs three
+ * (Thread · Instance · Writer), Tasklist Generation two (Raw · File). The
+ * caller supplies the already-rendered lines from its contract
+ * (`lib/command/contracts.ts`); this module owns only the shape.
+ *
+ * Pure: no imports, no clock, no I/O.
  */
 
 export type SourceType = "vault-file" | "raw" | "chat-reference";
@@ -44,15 +47,28 @@ export function bareCommandName(command: string): string {
   return stripped.length > 0 ? stripped : command.trim();
 }
 
-/** The unfilled envelope: the shape an operator sees before typing anything. */
-export function baseTemplate(command: string): string {
+/**
+ * The envelope. `contentLines` are rendered lines of the form
+ * `  - <key>: <value>` — exactly one per declared field.
+ */
+export function composeEnvelope(
+  command: string,
+  contentLines: string[],
+  additional: string,
+): string {
+  const filled = additional.trim();
   return [
     `AI-Suplex: ${bareCommandName(command)}`,
     "CONTENT",
-    "  - <Source type>: <value>",
+    ...contentLines,
     "",
-    "ADDITIONAL: <instructions>",
+    filled.length > 0 ? `ADDITIONAL: ${filled}` : "ADDITIONAL: <instructions>",
   ].join("\n");
+}
+
+/** The unfilled envelope: every declared field at its placeholder. */
+export function baseTemplate(command: string, contentLines: string[]): string {
+  return composeEnvelope(command, contentLines, "");
 }
 
 /** True when the operator has not filled the source yet. */
@@ -61,28 +77,9 @@ export function isEmptySelection(source: SourceSelection): boolean {
 }
 
 /**
- * Fill the two placeholders. An empty field leaves its placeholder intact —
- * the operator sees exactly what is still unfilled, and no value is invented.
- */
-export function composeCommand(
-  command: string,
-  source: SourceSelection,
-  additional: string,
-): string {
-  const content = isEmptySelection(source)
-    ? "  - <Source type>: <value>"
-    : `  - ${SOURCE_LABEL[source.type as SourceType]}: ${source.value.trim()}`;
-  const filled = additional.trim();
-  const extra = filled.length > 0 ? `ADDITIONAL: ${filled}` : "ADDITIONAL: <instructions>";
-  return [`AI-Suplex: ${bareCommandName(command)}`, "CONTENT", content, "", extra].join("\n");
-}
-
-/**
  * A value survives a source-type change **only if the new type can represent
  * it**. Prose cannot be a file, so switching to `vault-file` drops it; a vault
- * path survives into raw text, because text can hold anything. This is what
- * lets the picker bind directly to the state instead of rendering a derived
- * value — the control can never show "empty" over a full state (T029/3).
+ * path survives into raw text, because text can hold anything.
  */
 export function retargetSourceValue(
   value: string,
@@ -94,10 +91,20 @@ export function retargetSourceValue(
   return vaultPaths.includes(trimmed) ? trimmed : "";
 }
 
-/**
- * The five-line envelope is the contract; this is the assertion's yardstick.
- * Physical lines — the blank between CONTENT and ADDITIONAL is part of the shape.
- */
+/** One `source` field's line: the source type is the key once a value exists. */
+export function sourceLine(source: SourceSelection): string {
+  return isEmptySelection(source)
+    ? "  - <Source type>: <value>"
+    : `  - ${SOURCE_LABEL[source.type as SourceType]}: ${source.value.trim()}`;
+}
+
+/** A plain field's line: the placeholder stands in until the operator types. */
+export function fieldLine(key: string, value: string, placeholder: string): string {
+  const trimmed = value.trim();
+  return `  - ${key}: ${trimmed.length > 0 ? trimmed : placeholder}`;
+}
+
+/** Physical lines — the blank between CONTENT and ADDITIONAL is part of the shape. */
 export function lineCount(text: string): number {
   return text.split("\n").length;
 }

@@ -291,7 +291,7 @@ export interface CopyOnlyCommand {
 export const COPY_ONLY_COMMANDS: CopyOnlyCommand[] = [
   { command: "Artifact Capture (YouTube)", trigger: "AI-Suplex: Artifact Capture (youtube)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture (YouTube).md" },
   { command: "Artifact Capture (Markdown)", trigger: "AI-Suplex: Artifact Capture (Markdown)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture(Markdown).md" },
-  { command: "Artifact Capture (file)", trigger: "AI-Suplex: Artifact Capture (file)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture(Non Markdown).md" },
+  { command: "Artifact Capture (file)", trigger: "AI-Suplex: Artifact Capture (file)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture(File).md" },
   { command: "Artifact Capture (Scratch Pad)", trigger: "AI-Suplex: Artifact Capture (Scratch Pad)", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Artifact Capture(Scratch Pad).md" },
   { command: "B-Bomb Hunt", trigger: "AI-Suplex: B-Bomb Hunt", link: "Prompt Patterns/AI-Suplex Commands/⚡ Command — B-Bomb Hunt.md" },
   { command: "Batch Insight", trigger: "AI-Suplex: Batch Insight", link: "Prompt Patterns/📄 Pattern - Batch Insight Generation.md" },

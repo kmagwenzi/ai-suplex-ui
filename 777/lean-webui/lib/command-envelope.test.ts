@@ -1,12 +1,11 @@
 /**
- * command-envelope.test.ts — T029's findings, re-pinned after T032.
+ * command-envelope.test.ts — T029's findings, re-pinned after the port.
  *
- * Finding 1 (the documentation dump) is now **structurally fixed**: the panel
- * composes through `lib/command/envelope.ts` and has no path to a pattern body.
- * These tests go red again the moment someone re-introduces one — that is their
- * whole job, so they assert the *source*, not just the output.
- *
- * Finding 3 (a prefill must resolve) stays red until T033.
+ * Finding 1 (the documentation dump) is **structurally fixed**: the panel
+ * composes through `lib/command/envelope.ts` against a contract from
+ * `lib/command/contracts.ts`, and has no path to a pattern body. These tests go
+ * red again the moment someone re-introduces one — that is their job, so they
+ * assert the *source*, not just the output.
  */
 
 import { describe, it } from "node:test";
@@ -15,7 +14,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { composeCommand, lineCount } from "./command/envelope";
+import { composeEnvelope, fieldLine, lineCount, sourceLine } from "./command/envelope";
 import { prefillFor, vaultFileOptions, type PrefillInput } from "./prompts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -26,20 +25,18 @@ function input(overrides: Partial<PrefillInput> = {}): PrefillInput {
 }
 
 describe("T029/1 — the panel has no path to the pattern document", () => {
-  it("composes through the envelope, and fetches no body", () => {
-    assert.ok(
-      PANEL.includes('from "@/lib/command/envelope"'),
-      "the panel must compose through lib/command/envelope",
-    );
-    assert.ok(PANEL.includes("composeCommand("), "the panel must call composeCommand");
+  it("composes through the envelope and a contract, and fetches no body", () => {
+    assert.ok(PANEL.includes('from "@/lib/command/envelope"'), "the panel must compose through the envelope");
+    assert.ok(PANEL.includes('from "@/lib/command/contracts"'), "the panel must read a content contract");
+    assert.ok(PANEL.includes("composeEnvelope("), "the panel must call composeEnvelope");
     assert.ok(!PANEL.includes("/api/prompt"), "the panel must not fetch a pattern body");
     assert.ok(!PANEL.includes("composePrompt("), "the panel must not patch a document");
   });
 
-  it("the composed command is five lines, not eight kilobytes", () => {
-    const out = composeCommand(
+  it("a composed command is short, has no separator, and carries no pattern text", () => {
+    const out = composeEnvelope(
       "Artifact Capture",
-      { type: "chat-reference", value: "the T029 browser run" },
+      [sourceLine({ type: "chat-reference", value: "the T029 browser run" })],
       "",
     );
     assert.equal(lineCount(out), 5);
@@ -49,16 +46,17 @@ describe("T029/1 — the panel has no path to the pattern document", () => {
 });
 
 describe("T029/2 — the field is the truth", () => {
-  it("changing the source changes the command (guard)", () => {
-    const a = composeCommand("Session Start", { type: "vault-file", value: "Tasklists/a.md" }, "");
-    const b = composeCommand("Session Start", { type: "vault-file", value: "Tasklists/b.md" }, "");
+  it("changing a field changes the command (guard)", () => {
+    const a = composeEnvelope("Session Start", [fieldLine("Task ID", "T009", "<e.g. T009>")], "");
+    const b = composeEnvelope("Session Start", [fieldLine("Task ID", "T012", "<e.g. T009>")], "");
     assert.notEqual(a, b);
-    assert.ok(a.includes("  - File Reference: Tasklists/a.md"));
+    assert.ok(a.includes("  - Task ID: T009"));
   });
 
   it("changing ADDITIONAL changes the command (guard)", () => {
-    const a = composeCommand("Weekly Review", { type: null, value: "" }, "Save to Reviews/");
-    const b = composeCommand("Weekly Review", { type: null, value: "" }, "Skip memory loop");
+    const line = fieldLine("Raw Content", "the week", "<x>");
+    const a = composeEnvelope("Weekly Review", [line], "Save to Reviews/");
+    const b = composeEnvelope("Weekly Review", [line], "Skip memory loop");
     assert.notEqual(a, b);
   });
 });

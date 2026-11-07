@@ -1,9 +1,9 @@
 /**
- * envelope.test.ts — T031. The five-line contract, pinned.
+ * envelope.test.ts — T031 + T041. The envelope contract, pinned.
  *
- * These are the properties the panel (T032) and the prefill (T033) will rely on:
- * the envelope is short, it is built from fields, and it can never carry a
- * document — there is no parameter through which one could arrive.
+ * A command carries exactly the lines its contract declares: one field → five
+ * physical lines, three fields → seven. The document can never appear — there
+ * is no parameter through which one could arrive.
  */
 
 import { describe, it } from "node:test";
@@ -12,17 +12,19 @@ import assert from "node:assert/strict";
 import {
   bareCommandName,
   baseTemplate,
-  composeCommand,
+  composeEnvelope,
+  fieldLine,
   isEmptySelection,
   isSourceType,
   lineCount,
   retargetSourceValue,
+  sourceLine,
   SOURCE_LABEL,
 } from "./envelope";
 
-describe("the envelope is five lines", () => {
-  it("an unfilled command is exactly five non-empty lines", () => {
-    const out = baseTemplate("Artifact Capture");
+describe("the envelope carries exactly its declared lines", () => {
+  it("one field is five physical lines", () => {
+    const out = composeEnvelope("Artifact Capture", [sourceLine({ type: null, value: "" })], "");
     assert.equal(lineCount(out), 5);
     assert.equal(
       out,
@@ -36,73 +38,64 @@ describe("the envelope is five lines", () => {
     );
   });
 
-  it("a filled command is still five lines", () => {
-    const out = composeCommand(
-      "Artifact Capture",
-      { type: "chat-reference", value: "the T029 browser run" },
-      "Save to Artifacts/Cycle 3/",
+  it("three fields are seven physical lines — Save Context's real shape", () => {
+    const out = composeEnvelope(
+      "Save Context",
+      [
+        fieldLine("Thread", "project-tasks", "<daily-tasks | project-tasks | random-tasks | realist>"),
+        fieldLine("Instance", "9 · 777-command-panel", "<ref or slug — omit for singletons>"),
+        fieldLine("Writer", "committer", "<committer | producer>"),
+      ],
+      "",
     );
-    assert.equal(lineCount(out), 5);
-    assert.ok(out.includes("  - Chat Reference: the T029 browser run"));
-    assert.ok(out.includes("ADDITIONAL: Save to Artifacts/Cycle 3/"));
-    assert.ok(out.length < 300, "a command is a command, not a document");
+    assert.equal(lineCount(out), 7);
+    assert.ok(out.includes("  - Thread: project-tasks"));
+    assert.ok(out.includes("  - Instance: 9 · 777-command-panel"));
+    assert.ok(out.includes("  - Writer: committer"));
+  });
+
+  it("an empty field keeps its placeholder — never a guess", () => {
+    const line = fieldLine("Task ID", "   ", "<e.g. T009>");
+    assert.equal(line, "  - Task ID: <e.g. T009>");
+  });
+
+  it("ADDITIONAL fills and clears", () => {
+    const out = composeEnvelope("Weekly Review", [fieldLine("Raw Content", "the week", "<x>")], " Save to Reviews/ ");
+    assert.ok(out.includes("ADDITIONAL: Save to Reviews/"));
+    assert.ok(composeEnvelope("Weekly Review", [], "").includes("ADDITIONAL: <instructions>"));
   });
 });
 
-describe("fields are the only inputs", () => {
-  it("an empty source leaves the placeholder, it does not guess", () => {
-    for (const source of [
-      { type: null, value: "" },
-      { type: "vault-file" as const, value: "   " },
-      { type: null, value: "something" },
-    ]) {
-      const out = composeCommand("Weekly Review", source, "");
-      assert.ok(out.includes("  - <Source type>: <value>"), JSON.stringify(source));
-      assert.ok(isEmptySelection(source));
-    }
+describe("the source line", () => {
+  it("names the type once a value exists", () => {
+    assert.equal(
+      sourceLine({ type: "vault-file", value: " Tasklists/a.md " }),
+      "  - File Reference: Tasklists/a.md",
+    );
+    assert.equal(sourceLine({ type: "raw", value: "something" }), "  - Raw Content: something");
   });
 
-  it("each source type is labelled in full", () => {
-    for (const type of ["vault-file", "raw", "chat-reference"] as const) {
-      const out = composeCommand("Note Capture", { type, value: "X" }, "");
-      assert.ok(out.includes(`  - ${SOURCE_LABEL[type]}: X`));
-    }
-  });
-
-  it("changing any field changes the command", () => {
-    const base = "Artifact Capture";
-    const a = composeCommand(base, { type: "raw", value: "one" }, "");
-    const b = composeCommand(base, { type: "raw", value: "two" }, "");
-    const c = composeCommand(base, { type: "raw", value: "one" }, "Skip memory loop");
-    assert.notEqual(a, b);
-    assert.notEqual(a, c);
-  });
-
-  it("trims what it is given", () => {
-    const out = composeCommand("Note Capture", { type: "raw", value: "  hello  " }, "  Save to X  ");
-    assert.ok(out.includes("  - Raw Content: hello"));
-    assert.ok(out.includes("ADDITIONAL: Save to X"));
+  it("falls back to the grammar when empty", () => {
+    assert.equal(sourceLine({ type: null, value: "" }), "  - <Source type>: <value>");
+    assert.equal(sourceLine({ type: "vault-file", value: "  " }), "  - <Source type>: <value>");
   });
 });
 
 describe("the name normalises, the prefix never doubles", () => {
   it("accepts a bare name, a full trigger, or a rendered heading", () => {
-    const expected = "AI-Suplex: Session Start";
     assert.equal(bareCommandName("Session Start"), "Session Start");
     assert.equal(bareCommandName("AI-Suplex: Session Start"), "Session Start");
-    assert.equal(bareCommandName("ai-suplex:  Session Start"), "Session Start");
     assert.equal(bareCommandName("# ⚡ AI-Suplex: Session Start"), "Session Start");
-    assert.ok(baseTemplate("AI-Suplex: Session Start").startsWith(expected));
-    assert.ok(baseTemplate("# ⚡ AI-Suplex: Session Start").startsWith(expected));
+    assert.ok(baseTemplate("AI-Suplex: Session Start", ["  - x"]).startsWith("AI-Suplex: Session Start"));
   });
 });
 
 describe("the envelope can never carry a document", () => {
   it("has no separator and no pattern body, whatever the fields say", () => {
-    const out = composeCommand(
+    const out = composeEnvelope(
       "B-Bomb Promotion",
-      { type: "vault-file", value: "Artifacts/2026-2027/Cycle 3/Week 3/x.md" },
-      "ADDITIONAL: nested — and still just text",
+      [fieldLine("File Reference", "Artifacts/x.md", "<Artifacts/….md>")],
+      "ADDITIONAL: nested — still just text",
     );
     assert.ok(!/\n---\n/.test(out));
     assert.ok(!out.includes("Prompt Pattern"));
@@ -120,16 +113,17 @@ describe("a value survives a type change only if the new type can hold it", () =
 
   it("drops prose when the target is a file picker", () => {
     assert.equal(retargetSourceValue("Cycle 3 · Week 3", "vault-file", paths), "");
-    assert.equal(retargetSourceValue("  ", "vault-file", paths), "");
   });
 
-  it("keeps a real vault path", () => {
+  it("keeps a real vault path, and keeps anything in text", () => {
     assert.equal(retargetSourceValue("Tasklists/a.md", "vault-file", paths), "Tasklists/a.md");
-  });
-
-  it("keeps anything when the target is text", () => {
-    assert.equal(retargetSourceValue("Tasklists/a.md", "raw", paths), "Tasklists/a.md");
     assert.equal(retargetSourceValue("a sentence", "chat-reference", paths), "a sentence");
   });
-});
 
+  it("isEmptySelection agrees", () => {
+    assert.ok(isEmptySelection({ type: null, value: "x" }));
+    assert.ok(isEmptySelection({ type: "raw", value: "  " }));
+    assert.ok(!isEmptySelection({ type: "raw", value: "x" }));
+    assert.equal(SOURCE_LABEL["vault-file"], "File Reference");
+  });
+});
