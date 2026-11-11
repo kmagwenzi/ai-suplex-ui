@@ -18,6 +18,14 @@ consuming **`mcp v1` over stdio only**.
 3. **A copied command is not `done`; the output file is.** A stage flips only
    when the vault holds its output — never when a button is pressed.
 
+## Workspace = thread, client-facing
+
+The console presents the four lanes as **Workspaces** — *Daily Work · Project ·
+Quick Task · Review* — while the vault and the MCP contract keep the internal
+`thread` tokens (`daily-tasks` · `project-tasks` · `random-tasks` · `realist`).
+`lib/workspace.ts` owns the label map; the command surface emits the internal
+token, never the label.
+
 ## Install and run
 
 ```bash
