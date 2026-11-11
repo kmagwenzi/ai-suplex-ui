@@ -14,6 +14,7 @@ import {
 import {
   contractFor,
   prefillField,
+  withTypeAwareDefault,
   type CommandContract,
   type ContentField,
 } from "@/lib/command/contracts";
@@ -226,7 +227,7 @@ function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: Prefi
   );
 
   const set = (key: string, value: string) => {
-    setValues((current) => ({ ...current, [key]: value }));
+    setValues((current) => withTypeAwareDefault(card.name, key, value, current));
     setCopied(false);
   };
 

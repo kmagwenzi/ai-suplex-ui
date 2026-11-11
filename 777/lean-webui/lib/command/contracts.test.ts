@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { CONTRACTS, contractFor, prefillField } from "./contracts";
+import { CONTRACTS, contractFor, prefillField, withTypeAwareDefault } from "./contracts";
 import { PROMPT_STAGE, type PrefillInput } from "../prompts";
 import { fieldLine, lineCount, composeEnvelope } from "./envelope";
 
@@ -152,5 +152,36 @@ describe("composition honours the declared shape", () => {
   it("contractFor finds a command and rejects an unknown one", () => {
     assert.equal(contractFor("save-context")?.name, "save-context");
     assert.equal(contractFor("nope"), undefined);
+  });
+});
+
+describe("the create/execute guardrail (Define ≠ Kickstart)", () => {
+  it("Define declares the creation fields Kickstart lacks, and vice versa", () => {
+    const defineKeys = CONTRACTS["define-workspace"].fields.map((f) => f.key);
+    const kickKeys = CONTRACTS["kickstart-workspace"].fields.map((f) => f.key);
+
+    for (const k of ["Title", "Mission", "Outcome", "Tasks", "Create Tasklist"]) {
+      assert.ok(defineKeys.includes(k), `define-workspace declares ${k}`);
+      assert.ok(!kickKeys.includes(k), `kickstart-workspace must NOT declare ${k}`);
+    }
+    assert.ok(kickKeys.includes("Workspace"), "kickstart-workspace declares Workspace");
+    assert.ok(!defineKeys.includes("Workspace"), "define-workspace must NOT declare Workspace");
+  });
+});
+
+describe("withTypeAwareDefault — the type-aware Create Tasklist", () => {
+  it("sets YES for Daily Work and Project", () => {
+    assert.equal(withTypeAwareDefault("define-workspace", "Workspace Type", "Daily Work", {})["Create Tasklist"], "YES");
+    assert.equal(withTypeAwareDefault("define-workspace", "Workspace Type", "Project", {})["Create Tasklist"], "YES");
+  });
+
+  it("sets NO for Quick Task and Review", () => {
+    assert.equal(withTypeAwareDefault("define-workspace", "Workspace Type", "Quick Task", {})["Create Tasklist"], "NO");
+    assert.equal(withTypeAwareDefault("define-workspace", "Workspace Type", "Review", {})["Create Tasklist"], "NO");
+  });
+
+  it("leaves Create Tasklist alone on other fields or commands", () => {
+    assert.deepEqual(withTypeAwareDefault("define-workspace", "Title", "x", {}), { Title: "x" });
+    assert.deepEqual(withTypeAwareDefault("kickstart-workspace", "Workspace Type", "Project", {}), { "Workspace Type": "Project" });
   });
 });

@@ -13,7 +13,7 @@
 
 import { instancePath, type PrefillInput } from "../prompts";
 import { isDailyTasklist } from "../stages";
-import { WORKSPACE_LANES, WORKSPACE_TYPE_LABELS } from "../workspace";
+import { WORKSPACE_LANES, WORKSPACE_TYPE_LABELS, tasklistDefaultFor } from "../workspace";
 
 export type FieldKind = "text" | "raw" | "enum" | "vault-file" | "instance" | "source";
 
@@ -360,6 +360,24 @@ export function prefillField(name: string, key: string, input: PrefillInput): st
   }
 
   return "";
+}
+
+/**
+ * The type-aware default, applied on change. When "Workspace Type" changes on
+ * Define Workspace, "Create Tasklist" follows the type's default — the rule,
+ * never the operator's guess. Pure: returns a new map, never mutates the current.
+ */
+export function withTypeAwareDefault(
+  name: string,
+  key: string,
+  value: string,
+  current: Record<string, string>,
+): Record<string, string> {
+  const next = { ...current, [key]: value };
+  if (name === "define-workspace" && key === "Workspace Type") {
+    next["Create Tasklist"] = tasklistDefaultFor(value);
+  }
+  return next;
 }
 
 /** The instance paths a `vault-file` field may point at, resolved like the picker. */
