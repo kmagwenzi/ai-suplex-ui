@@ -23,6 +23,7 @@ import {
   type PromptCard,
   type PrefillInput,
 } from "@/lib/prompts";
+import { workspaceLabel } from "@/lib/workspace";
 
 const MEMORY_LOOP_LABEL: Record<string, string> = {
   yes: "yes",
@@ -326,7 +327,7 @@ function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: Prefi
               value={values[field.key] ?? ""}
               source={source}
               files={files}
-              instances={instances.map((t) => (t.singleton ? t.thread : `${t.ref ?? ""} · ${t.slug ?? ""}`).trim())}
+              instances={instances.map((t) => (t.singleton ? workspaceLabel(t.thread) : `${t.ref ?? ""} · ${t.slug ?? ""}`).trim())}
               onChange={(value) => set(field.key, value)}
               onSource={(next) => {
                 setSource(next);

@@ -10,6 +10,7 @@
 
 import type { Instance, StageId, TasklistSummary } from "./types";
 import { EXECUTOR_GLYPH, EXECUTOR_LABEL, STAGE_META, isDailyTasklist } from "./stages";
+import { workspaceLabel } from "./workspace";
 
 // ── the `prompts/list` shape ────────────────────────────────────────────────
 export interface PromptArgument {
@@ -176,7 +177,7 @@ export function prefillFor(name: string, input: PrefillInput): Prefill {
         return {
           type: "vault-file",
           value: instancePath(inst.file),
-          note: `the ${inst.thread}${inst.ref ? ` · ${inst.ref}` : ""} instance`,
+          note: `the ${workspaceLabel(inst.thread)}${inst.ref ? ` · ${inst.ref}` : ""} workspace`,
         };
       }
       return { type: null, value: "", note: "no open instances" };
