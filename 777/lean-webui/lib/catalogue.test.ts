@@ -39,6 +39,8 @@ const DISPATCHABLE_COMMAND_FILES = [
   `${COMMANDS_DIR}/⚡ Command — Session End Report.md`,
   `${COMMANDS_DIR}/⚡ Command — Save Context.md`,
   `${COMMANDS_DIR}/⚡ Command — Tasklist Generation.md`,
+  `${COMMANDS_DIR}/⚡ Command — Define Workspace.md`,
+  `${COMMANDS_DIR}/⚡ Command — Kickstart Workspace.md`,
 ];
 
 function vaultRoot(): string | null {
@@ -100,6 +102,8 @@ if (!available) {
         "AI-Suplex: Session End Report",
         "AI-Suplex: Save Context",
         "AI-Suplex: Tasklist Generation",
+        "AI-Suplex: Define Workspace",
+        "AI-Suplex: Kickstart Workspace",
       ]);
       for (const c of COPY_ONLY_COMMANDS) {
         assert.ok(!dispatchable.has(c.trigger), `${c.trigger} is dispatchable, not copy-only`);

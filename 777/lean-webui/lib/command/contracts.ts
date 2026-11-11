@@ -13,7 +13,7 @@
 
 import { instancePath, type PrefillInput } from "../prompts";
 import { isDailyTasklist } from "../stages";
-import { WORKSPACE_LANES } from "../workspace";
+import { WORKSPACE_LANES, WORKSPACE_TYPE_LABELS } from "../workspace";
 
 export type FieldKind = "text" | "raw" | "enum" | "vault-file" | "instance" | "source";
 
@@ -48,6 +48,8 @@ export interface CommandContract {
 
 const THREADS: string[] = WORKSPACE_LANES; // internal lane tokens — the command emits these verbatim
 const WRITERS = ["committer", "producer"];
+const WORKSPACE_TYPE_OPTIONS: string[] = WORKSPACE_TYPE_LABELS;
+const MODES = ["Trusted local agent", "Contributor agent"];
 
 export const CONTRACTS: Record<string, CommandContract> = {
   "session-start": {
@@ -213,6 +215,106 @@ export const CONTRACTS: Record<string, CommandContract> = {
       },
     ],
     additionalHint: "Save to B-Bombs/<Period>/Cycle X/Week Y/",
+  },
+
+  "define-workspace": {
+    name: "define-workspace",
+    patternFile: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Define Workspace.md",
+    purpose: "Create a workspace brief — one lane, one brief, one writer.",
+    fields: [
+      {
+        key: "Workspace Type",
+        kind: "enum",
+        required: true,
+        placeholder: "<Daily Work | Project | Quick Task | Review>",
+        hint: "the kind of workspace — it maps to the internal lane",
+        options: WORKSPACE_TYPE_OPTIONS,
+      },
+      {
+        key: "Title",
+        kind: "text",
+        required: true,
+        placeholder: "<kebab-slug>",
+        hint: "the workspace slug — stable for its life",
+      },
+      {
+        key: "Mission",
+        kind: "text",
+        required: true,
+        placeholder: "<one line>",
+        hint: "what this workspace is for",
+      },
+      {
+        key: "Outcome",
+        kind: "text",
+        required: true,
+        placeholder: "<the acceptance test>",
+        hint: "the definition of done — when is this complete?",
+      },
+      {
+        key: "Tasks",
+        kind: "raw",
+        required: false,
+        placeholder: "<one per line>",
+        hint: "the initial tasks — the system assigns IDs",
+      },
+      {
+        key: "Create Tasklist",
+        kind: "enum",
+        required: false,
+        placeholder: "<YES | NO — default by type>",
+        hint: "default follows the workspace type (Daily/Project: YES, Quick/Review: NO)",
+        options: ["YES", "NO"],
+      },
+      {
+        key: "Agent",
+        kind: "text",
+        required: false,
+        placeholder: "<agent name | Ask me later>",
+        hint: "which agent will run this workspace",
+      },
+      {
+        key: "Mode",
+        kind: "enum",
+        required: false,
+        placeholder: "<Trusted local agent | Contributor agent>",
+        hint: "committer or producer — the write-scope (R8)",
+        options: MODES,
+      },
+    ],
+    additionalHint: "Skip memory loop",
+  },
+
+  "kickstart-workspace": {
+    name: "kickstart-workspace",
+    patternFile: "Prompt Patterns/AI-Suplex Commands/⚡ Command — Kickstart Workspace.md",
+    purpose: "Load and run a defined workspace.",
+    fields: [
+      {
+        key: "Workspace Type",
+        kind: "enum",
+        required: true,
+        placeholder: "<Daily Work | Project | Quick Task | Review>",
+        hint: "the kind of workspace — it maps to the internal lane",
+        options: WORKSPACE_TYPE_OPTIONS,
+      },
+      {
+        key: "Workspace",
+        kind: "instance",
+        required: false,
+        placeholder: "<slug or ref>",
+        hint: "which workspace to run — omit when only one is open",
+      },
+      {
+        key: "Mode",
+        kind: "enum",
+        required: false,
+        placeholder: "<Trusted local agent | Contributor agent>",
+        hint: "committer or producer",
+        options: MODES,
+      },
+    ],
+    additionalHint: "Skip memory loop",
   },
 };
 

@@ -39,7 +39,7 @@ function input(overrides: Partial<PrefillInput> = {}): PrefillInput {
 }
 
 describe("every dispatchable prompt has a contract", () => {
-  it("covers exactly the seven prompts the catalogue exposes", () => {
+  it("covers exactly the nine prompts the catalogue exposes", () => {
     const prompts = Object.keys(PROMPT_STAGE).sort();
     const contracted = Object.keys(CONTRACTS).sort();
     assert.deepEqual(contracted, prompts);

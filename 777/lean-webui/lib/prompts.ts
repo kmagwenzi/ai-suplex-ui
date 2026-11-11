@@ -34,6 +34,8 @@ export const PROMPT_STAGE: Record<string, StageId> = {
   "tasklist-generation": "plan",
   "weekly-review": "review",
   "b-bomb-promotion": "review",
+  "define-workspace": "plan",
+  "kickstart-workspace": "context",
 };
 
 /** The declared save path each command produces (spec §6 / pattern files). */
@@ -45,6 +47,8 @@ export const PROMPT_OUTPUT: Record<string, string> = {
   "tasklist-generation": "Tasklists/",
   "weekly-review": "Reviews/",
   "b-bomb-promotion": "B-Bombs/…",
+  "define-workspace": "Context Kick-start/Active/",
+  "kickstart-workspace": "—",
 };
 
 export type MemoryLoop = "yes" | "conditional" | "no" | null;
@@ -66,6 +70,8 @@ export const PROMPT_MEMORY_LOOP: Record<string, MemoryLoop> = {
   "tasklist-generation": "conditional",
   "weekly-review": "yes",
   "b-bomb-promotion": "yes",
+  "define-workspace": "no",
+  "kickstart-workspace": "no",
 };
 
 /**
@@ -74,6 +80,7 @@ export const PROMPT_MEMORY_LOOP: Record<string, MemoryLoop> = {
  */
 export function memoryLoopKind(body: string): MemoryLoop {
   if (!/memory\s*loop/i.test(body)) return null;
+  if (/\*\*none\*\*/i.test(body)) return "no";
   if (/skip\s*memory\s*loop|only\s+at\s+session\s+end|unless\s+`?skip/i.test(body)) {
     return "conditional";
   }

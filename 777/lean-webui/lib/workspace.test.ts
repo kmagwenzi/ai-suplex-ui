@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import {
   WORKSPACE_LABEL,
   WORKSPACE_LANES,
+  WORKSPACE_TYPE_LABELS,
   WORKSPACE_TYPES,
   defaultTasklist,
+  tasklistDefaultFor,
   workspaceLabel,
 } from "./workspace";
 
@@ -57,5 +59,34 @@ describe("defaultTasklist — type-aware", () => {
 
   it("defaults to No for an unknown lane", () => {
     assert.equal(defaultTasklist("nope"), false);
+  });
+});
+
+describe("WORKSPACE_TYPE_LABELS", () => {
+  it("lists the four client labels in lane order", () => {
+    assert.deepEqual(WORKSPACE_TYPE_LABELS, [
+      "Daily Work",
+      "Project",
+      "Quick Task",
+      "Review",
+    ]);
+  });
+});
+
+describe("tasklistDefaultFor — the type-aware default", () => {
+  it("accepts a client label", () => {
+    assert.equal(tasklistDefaultFor("Daily Work"), "YES");
+    assert.equal(tasklistDefaultFor("Project"), "YES");
+    assert.equal(tasklistDefaultFor("Quick Task"), "NO");
+    assert.equal(tasklistDefaultFor("Review"), "NO");
+  });
+
+  it("accepts a lane token", () => {
+    assert.equal(tasklistDefaultFor("daily-tasks"), "YES");
+    assert.equal(tasklistDefaultFor("random-tasks"), "NO");
+  });
+
+  it("defaults to NO for an unknown type", () => {
+    assert.equal(tasklistDefaultFor("mystery"), "NO");
   });
 });

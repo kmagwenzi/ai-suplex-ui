@@ -1,6 +1,6 @@
 /**
  * smoke.test.ts — the seam, end to end. One persistent stdio server, the eight
- * typed reads, the seven prompts, and one write tool that must round-trip.
+ * typed reads, the nine prompts, and one write tool that must round-trip.
  *
  * Skips (visibly) when no harness is installed; otherwise it is the real thing.
  */
@@ -49,9 +49,9 @@ describe("mcp smoke — a live mcp v1 harness", { skip: reason }, () => {
     assert.ok(Array.isArray(summary.tasklists), "tasklists must be an array");
   });
 
-  it("prompts/list is exactly the seven contract prompts", async () => {
+  it("prompts/list is exactly the nine contract prompts", async () => {
     const items = await listPrompts();
-    assert.equal(items.length, 7);
+    assert.equal(items.length, 9);
     for (const item of items) {
       assert.match(item.command, /^AI-Suplex: /);
       assert.ok(Array.isArray(item.arguments));

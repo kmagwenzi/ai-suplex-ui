@@ -73,3 +73,16 @@ export function defaultTasklist(lane: string): boolean {
   const def = (WORKSPACE_TYPES as Partial<Record<string, WorkspaceTypeDef>>)[lane];
   return def?.tasklistDefault ?? false;
 }
+
+/** The client-facing labels, in lane order. */
+export const WORKSPACE_TYPE_LABELS: string[] = WORKSPACE_LANES.map(
+  (lane) => WORKSPACE_LABEL[lane],
+);
+
+/** The type-aware "Create tasklist" default — "YES" or "NO", from a label or a lane token. */
+export function tasklistDefaultFor(type: string): "YES" | "NO" {
+  const lane = WORKSPACE_LANES.find(
+    (l) => l === type || WORKSPACE_LABEL[l] === type,
+  );
+  return lane && defaultTasklist(lane) ? "YES" : "NO";
+}
