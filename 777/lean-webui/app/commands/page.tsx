@@ -14,9 +14,11 @@ export const dynamic = "force-dynamic";
 export default async function Commands({
   searchParams,
 }: {
-  searchParams: Promise<{ debug?: string }>;
+  searchParams: Promise<{ debug?: string; command?: string }>;
 }) {
-  const debug = (await searchParams).debug === "1";
+  const params = await searchParams;
+  const debug = params.debug === "1";
+  const command = params.command;
 
   let error: string | null = null;
   let cards: PromptCard[] | null = null;
@@ -81,6 +83,7 @@ export default async function Commands({
         cards={cards}
         prefill={prefill}
         copyOnly={COPY_ONLY_COMMANDS}
+        initialCommand={command}
       />
 
       {debug ? <DebugOverlay /> : null}

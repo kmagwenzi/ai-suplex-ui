@@ -40,12 +40,21 @@ export function CommandCatalogue({
   cards,
   prefill,
   copyOnly,
+  initialCommand,
 }: {
   cards: PromptCard[];
   prefill: PrefillInput;
   copyOnly: CopyOnlyCommand[];
+  initialCommand?: string;
 }) {
   const [compose, setCompose] = useState<PromptCard | null>(null);
+
+  // Deep-link: /commands?command=<name> opens that card's composer on mount.
+  useEffect(() => {
+    if (!initialCommand) return;
+    const target = cards.find((c) => c.name === initialCommand);
+    if (target) setCompose(target);
+  }, [initialCommand, cards]);
 
   return (
     <>
