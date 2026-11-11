@@ -13,12 +13,15 @@
 
 import { instancePath, type PrefillInput } from "../prompts";
 import { isDailyTasklist } from "../stages";
+import { WORKSPACE_LANES } from "../workspace";
 
 export type FieldKind = "text" | "raw" | "enum" | "vault-file" | "instance" | "source";
 
 export interface ContentField {
   /** The key printed in the command — `- <key>: <value>`. */
   key: string;
+  /** Display label — reads "Workspace" while the command emits `key`. Defaults to `key`. */
+  label?: string;
   kind: FieldKind;
   required: boolean;
   /** Shown in the UI *and* used verbatim when the field is empty — it teaches the format. */
@@ -43,7 +46,7 @@ export interface CommandContract {
   additionalHint: string;
 }
 
-const THREADS = ["daily-tasks", "project-tasks", "random-tasks", "realist"];
+const THREADS: string[] = WORKSPACE_LANES; // internal lane tokens — the command emits these verbatim
 const WRITERS = ["committer", "producer"];
 
 export const CONTRACTS: Record<string, CommandContract> = {
@@ -117,10 +120,11 @@ export const CONTRACTS: Record<string, CommandContract> = {
     fields: [
       {
         key: "Thread",
+        label: "Workspace",
         kind: "enum",
         required: true,
         placeholder: "<daily-tasks | project-tasks | random-tasks | realist>",
-        hint: "the lane this window belongs to — it sets the filename (R3)",
+        hint: "the workspace this window belongs to — it sets the filename (R3)",
         options: THREADS,
       },
       {

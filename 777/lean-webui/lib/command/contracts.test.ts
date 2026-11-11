@@ -58,6 +58,13 @@ describe("every dispatchable prompt has a contract", () => {
       }
     }
   });
+
+  it("Save Context reads 'Workspace' but emits 'Thread' (label ≠ key)", () => {
+    const field = CONTRACTS["save-context"].fields.find((f) => f.key === "Thread");
+    assert.ok(field, "save-context declares a Thread field");
+    assert.equal(field.label, "Workspace");
+    assert.equal(field.key, "Thread");
+  });
 });
 
 const vault = vaultRoot();

@@ -104,7 +104,7 @@ function Card({ card, onCompose }: { card: PromptCard; onCompose: () => void }) 
       {contract ? (
         <p className="mt-1.5 max-w-[68ch] text-[12px] text-muted">
           <span className="mono text-[11px] uppercase tracking-[0.04em]">content</span>{" "}
-          {contract.fields.map((f) => f.key).join(" · ")}
+          {contract.fields.map((f) => f.label ?? f.key).join(" · ")}
         </p>
       ) : null}
 
@@ -410,7 +410,7 @@ function ContentControl({
 }) {
   const label = (
     <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
-      {field.key}
+      {field.label ?? field.key}
       {field.required ? <span className="text-attention"> *</span> : null}
     </span>
   );
