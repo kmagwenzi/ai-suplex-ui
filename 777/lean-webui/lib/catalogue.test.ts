@@ -34,7 +34,7 @@ const HARNESS =
   path.resolve(APP, "..", "..", "..", "ai-suplex-harness", "server.js");
 const COMMANDS_DIR = "Prompt Patterns/AI-Suplex Commands";
 
-/** The three command docs the seven prompts dispatch (the rest are patterns). */
+/** The five command docs the nine prompts dispatch (the rest are patterns). */
 const DISPATCHABLE_COMMAND_FILES = [
   `${COMMANDS_DIR}/⚡ Command — Session End Report.md`,
   `${COMMANDS_DIR}/⚡ Command — Save Context.md`,

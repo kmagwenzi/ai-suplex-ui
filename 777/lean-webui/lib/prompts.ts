@@ -286,7 +286,7 @@ export interface CopyOnlyCommand {
 }
 
 /**
- * Every `⚡ Command — *.md` the vault holds that is **not** one of the seven
+ * Every `⚡ Command — *.md` the vault holds that is **not** one of the nine
  * dispatchable prompts, plus the one documented pattern-backed command.
  *
  * T034: derived from the vault, not curated by hand — the old six-row list both
