@@ -4,10 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   SOURCE_LABEL,
   composeEnvelope,
+  composeSections,
   fieldLine,
   isEmptySelection,
   retargetSourceValue,
   sourceLine,
+  taskLines,
   type SourceSelection,
   type SourceType,
 } from "@/lib/command/envelope";
@@ -216,6 +218,29 @@ function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: Prefi
 
   const fields = contract?.fields ?? [];
 
+  const grouped = fields.some((f) => f.section);
+
+  const sections = useMemo(() => {
+    const order: string[] = [];
+    const byHeading = new Map<string, string[]>();
+    for (const f of fields) {
+      const heading = f.section ?? "CONTENT";
+      if (!byHeading.has(heading)) {
+        byHeading.set(heading, []);
+        order.push(heading);
+      }
+      const bucket = byHeading.get(heading) as string[];
+      if (f.kind === "source") {
+        bucket.push(sourceLine(source));
+      } else if (f.section === "TASKS") {
+        bucket.push(...taskLines(values[f.key] ?? ""));
+      } else {
+        bucket.push(fieldLine(f.key, values[f.key] ?? "", f.placeholder));
+      }
+    }
+    return order.map((heading) => ({ heading, lines: byHeading.get(heading) ?? [] }));
+  }, [fields, source, values]);
+
   const lines = useMemo(
     () =>
       fields.map((f) =>
@@ -225,8 +250,11 @@ function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: Prefi
   );
 
   const composed = useMemo(
-    () => composeEnvelope(card.command, lines, additional),
-    [card.command, lines, additional],
+    () =>
+      grouped
+        ? composeSections(card.command, sections, additional)
+        : composeEnvelope(card.command, lines, additional),
+    [card.command, grouped, sections, lines, additional],
   );
 
   const unfilledRequired = fields.filter((f) =>

@@ -13,12 +13,14 @@ import {
   bareCommandName,
   baseTemplate,
   composeEnvelope,
+  composeSections,
   fieldLine,
   isEmptySelection,
   isSourceType,
   lineCount,
   retargetSourceValue,
   sourceLine,
+  taskLines,
   SOURCE_LABEL,
 } from "./envelope";
 
@@ -105,6 +107,30 @@ describe("the envelope can never carry a document", () => {
   it("isSourceType accepts only the three the contract knows", () => {
     for (const ok of ["vault-file", "raw", "chat-reference"]) assert.ok(isSourceType(ok));
     for (const bad of ["file", "", null, undefined, 3, {}]) assert.ok(!isSourceType(bad));
+  });
+});
+
+describe("the grouped envelope — Define/Kickstart Workspace", () => {
+  it("renders WORKSPACE / TASKS / SETTINGS blocks, never CONTENT", () => {
+    const out = composeSections(
+      "Define Workspace",
+      [
+        { heading: "WORKSPACE", lines: [fieldLine("Type", "Quick Task", "<x>"), fieldLine("Title", "workspace-test", "<y>")] },
+        { heading: "TASKS", lines: taskLines("- first task\n- second task") },
+        { heading: "SETTINGS", lines: [fieldLine("Create tasklist", "NO", "<z>")] },
+      ],
+      "",
+    );
+    assert.ok(out.startsWith("AI-Suplex: Define Workspace\n\nWORKSPACE:"));
+    assert.ok(out.includes("TASKS:\n1. first task\n2. second task"));
+    assert.ok(out.includes("SETTINGS:\n  - Create tasklist: NO"));
+    assert.ok(!out.includes("CONTENT"));
+    assert.ok(out.endsWith("ADDITIONAL: <instructions>"));
+  });
+
+  it("taskLines strips bullets and numbers from the raw textarea", () => {
+    assert.deepEqual(taskLines("- a\n* b\nc"), ["1. a", "2. b", "3. c"]);
+    assert.deepEqual(taskLines("   "), []);
   });
 });
 

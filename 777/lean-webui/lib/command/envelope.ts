@@ -108,3 +108,43 @@ export function fieldLine(key: string, value: string, placeholder: string): stri
 export function lineCount(text: string): number {
   return text.split("\n").length;
 }
+
+/** A section of the grouped block — Define/Kickstart Workspace only. */
+export interface EnvelopeSection {
+  heading: string;
+  lines: string[];
+}
+
+/**
+ * The grouped envelope — for the two Workspace commands whose governing docs
+ * specify WORKSPACE / TASKS / SETTINGS blocks, not a flat CONTENT list. The
+ * flat composeEnvelope stays the seven-command default.
+ */
+export function composeSections(
+  command: string,
+  sections: EnvelopeSection[],
+  additional: string,
+): string {
+  const filled = additional.trim();
+  const body = sections
+    .filter((s) => s.lines.length > 0)
+    .map((s) => [s.heading + ":", ...s.lines].join("\n"))
+    .join("\n\n");
+  return [
+    "AI-Suplex: " + bareCommandName(command),
+    "",
+    body,
+    "",
+    filled.length > 0 ? "ADDITIONAL: " + filled : "ADDITIONAL: <instructions>",
+  ].join("\n");
+}
+
+/** Turn a raw one-per-line textarea into a numbered list, stripping bullets. */
+export function taskLines(raw: string): string[] {
+  const items = raw
+    .split("\n")
+    .map((line) => line.replace(/^\s*[-*]\s*/, "").trim())
+    .filter((line) => line.length > 0);
+  return items.map((line, i) => i + 1 + ". " + line);
+}
+

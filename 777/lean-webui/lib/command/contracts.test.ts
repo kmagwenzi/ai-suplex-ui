@@ -160,7 +160,7 @@ describe("the create/execute guardrail (Define ≠ Kickstart)", () => {
     const defineKeys = CONTRACTS["define-workspace"].fields.map((f) => f.key);
     const kickKeys = CONTRACTS["kickstart-workspace"].fields.map((f) => f.key);
 
-    for (const k of ["Title", "Mission", "Outcome", "Tasks", "Create Tasklist"]) {
+    for (const k of ["Title", "Mission", "Outcome", "Tasks", "Create tasklist"]) {
       assert.ok(defineKeys.includes(k), `define-workspace declares ${k}`);
       assert.ok(!kickKeys.includes(k), `kickstart-workspace must NOT declare ${k}`);
     }
@@ -171,17 +171,17 @@ describe("the create/execute guardrail (Define ≠ Kickstart)", () => {
 
 describe("withTypeAwareDefault — the type-aware Create Tasklist", () => {
   it("sets YES for Daily Work and Project", () => {
-    assert.equal(withTypeAwareDefault("define-workspace", "Workspace Type", "Daily Work", {})["Create Tasklist"], "YES");
-    assert.equal(withTypeAwareDefault("define-workspace", "Workspace Type", "Project", {})["Create Tasklist"], "YES");
+    assert.equal(withTypeAwareDefault("define-workspace", "Type", "Daily Work", {})["Create tasklist"], "YES");
+    assert.equal(withTypeAwareDefault("define-workspace", "Type", "Project", {})["Create tasklist"], "YES");
   });
 
   it("sets NO for Quick Task and Review", () => {
-    assert.equal(withTypeAwareDefault("define-workspace", "Workspace Type", "Quick Task", {})["Create Tasklist"], "NO");
-    assert.equal(withTypeAwareDefault("define-workspace", "Workspace Type", "Review", {})["Create Tasklist"], "NO");
+    assert.equal(withTypeAwareDefault("define-workspace", "Type", "Quick Task", {})["Create tasklist"], "NO");
+    assert.equal(withTypeAwareDefault("define-workspace", "Type", "Review", {})["Create tasklist"], "NO");
   });
 
   it("leaves Create Tasklist alone on other fields or commands", () => {
     assert.deepEqual(withTypeAwareDefault("define-workspace", "Title", "x", {}), { Title: "x" });
-    assert.deepEqual(withTypeAwareDefault("kickstart-workspace", "Workspace Type", "Project", {}), { "Workspace Type": "Project" });
+    assert.deepEqual(withTypeAwareDefault("kickstart-workspace", "Type", "Project", {}), { Type: "Project" });
   });
 });

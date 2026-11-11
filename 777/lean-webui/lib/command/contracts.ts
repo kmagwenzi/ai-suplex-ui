@@ -22,6 +22,8 @@ export interface ContentField {
   key: string;
   /** Display label — reads "Workspace" while the command emits `key`. Defaults to `key`. */
   label?: string;
+  /** The grouped-block heading this field belongs to (Define/Kickstart only). Omitted → flat CONTENT. */
+  section?: string;
   kind: FieldKind;
   required: boolean;
   /** Shown in the UI *and* used verbatim when the field is empty — it teaches the format. */
@@ -223,7 +225,8 @@ export const CONTRACTS: Record<string, CommandContract> = {
     purpose: "Create a workspace brief — one lane, one brief, one writer.",
     fields: [
       {
-        key: "Workspace Type",
+        key: "Type",
+        section: "WORKSPACE",
         kind: "enum",
         required: true,
         placeholder: "<Daily Work | Project | Quick Task | Review>",
@@ -232,6 +235,7 @@ export const CONTRACTS: Record<string, CommandContract> = {
       },
       {
         key: "Title",
+        section: "WORKSPACE",
         kind: "text",
         required: true,
         placeholder: "<kebab-slug>",
@@ -239,6 +243,7 @@ export const CONTRACTS: Record<string, CommandContract> = {
       },
       {
         key: "Mission",
+        section: "WORKSPACE",
         kind: "text",
         required: true,
         placeholder: "<one line>",
@@ -246,6 +251,7 @@ export const CONTRACTS: Record<string, CommandContract> = {
       },
       {
         key: "Outcome",
+        section: "WORKSPACE",
         kind: "text",
         required: true,
         placeholder: "<the acceptance test>",
@@ -253,13 +259,15 @@ export const CONTRACTS: Record<string, CommandContract> = {
       },
       {
         key: "Tasks",
+        section: "TASKS",
         kind: "raw",
         required: false,
         placeholder: "<one per line>",
-        hint: "the initial tasks — the system assigns IDs",
+        hint: "the initial tasks — rendered as a numbered list",
       },
       {
-        key: "Create Tasklist",
+        key: "Create tasklist",
+        section: "SETTINGS",
         kind: "enum",
         required: false,
         placeholder: "<YES | NO — default by type>",
@@ -268,6 +276,7 @@ export const CONTRACTS: Record<string, CommandContract> = {
       },
       {
         key: "Agent",
+        section: "SETTINGS",
         kind: "text",
         required: false,
         placeholder: "<agent name | Ask me later>",
@@ -275,6 +284,7 @@ export const CONTRACTS: Record<string, CommandContract> = {
       },
       {
         key: "Mode",
+        section: "SETTINGS",
         kind: "enum",
         required: false,
         placeholder: "<Trusted local agent | Contributor agent>",
@@ -291,7 +301,8 @@ export const CONTRACTS: Record<string, CommandContract> = {
     purpose: "Load and run a defined workspace.",
     fields: [
       {
-        key: "Workspace Type",
+        key: "Type",
+        section: "WORKSPACE",
         kind: "enum",
         required: true,
         placeholder: "<Daily Work | Project | Quick Task | Review>",
@@ -300,6 +311,7 @@ export const CONTRACTS: Record<string, CommandContract> = {
       },
       {
         key: "Workspace",
+        section: "WORKSPACE",
         kind: "instance",
         required: false,
         placeholder: "<slug or ref>",
@@ -307,6 +319,7 @@ export const CONTRACTS: Record<string, CommandContract> = {
       },
       {
         key: "Mode",
+        section: "SETTINGS",
         kind: "enum",
         required: false,
         placeholder: "<Trusted local agent | Contributor agent>",
@@ -374,8 +387,8 @@ export function withTypeAwareDefault(
   current: Record<string, string>,
 ): Record<string, string> {
   const next = { ...current, [key]: value };
-  if (name === "define-workspace" && key === "Workspace Type") {
-    next["Create Tasklist"] = tasklistDefaultFor(value);
+  if (name === "define-workspace" && key === "Type") {
+    next["Create tasklist"] = tasklistDefaultFor(value);
   }
   return next;
 }
