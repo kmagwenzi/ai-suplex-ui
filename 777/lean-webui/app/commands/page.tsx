@@ -72,7 +72,7 @@ export default async function Commands({
         Commands
       </h1>
       <p className="mt-2 max-w-[62ch] text-[13px] text-ink-2">
-        The verbs. Seven dispatchable prompts, listed live from{" "}
+        The verbs. Nine dispatchable prompts, listed live from{" "}
         <code className="mono text-[12px]">prompts/list</code> and composed from
         the fields you fill — <span className="font-medium text-ink">never a
         pattern document, never re-authored here</span>. The rest are listed

@@ -63,6 +63,7 @@ export function Header() {
   const nav = [
     { href: "/", label: "Today" },
     { href: "/pipeline", label: "Pipeline" },
+    { href: "/workspaces", label: "Workspaces" },
     { href: "/commands", label: "Commands" },
     { href: "/session", label: "Session" },
     { href: "/memory", label: "Memory" },
