@@ -82,7 +82,14 @@ export function WorkspacesBoard({ instances }: { instances: Instance[] }) {
                       className="rounded-md border border-border bg-surface-2 p-3"
                     >
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <span className="font-medium text-ink">{instanceName(i)}</span>
+                        <Link
+                          href={`/workspaces/${encodeURIComponent(
+                            i.file.replace(/\.md$/, ""),
+                          )}`}
+                          className="font-medium text-ink hover:text-accent-ink hover:underline"
+                        >
+                          {instanceName(i)}
+                        </Link>
                         <span
                           className={
                             "mono text-[10px] uppercase tracking-[0.04em] " +
