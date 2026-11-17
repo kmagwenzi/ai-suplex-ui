@@ -393,7 +393,9 @@ function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: Prefi
               <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">output</span>
               <span className="mono text-[11px] text-muted">
                 {unfilledRequired.length > 0
-                  ? `${unfilledRequired.length} required field${unfilledRequired.length === 1 ? "" : "s"} unfilled`
+                  ? `before you send: ${unfilledRequired
+                      .map((f) => f.label ?? f.key)
+                      .join(" · ")}`
                   : `${lines.length} field${lines.length === 1 ? "" : "s"} · copy-only`}
               </span>
             </div>
@@ -412,7 +414,9 @@ function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: Prefi
               <span className="text-error">Clipboard unavailable — select the block and copy it.</span>
             ) : (
               <>
-                Copy hands the exact words to your agent. A stage turns{" "}
+                Copy hands the exact words to your agent — paste at the vault root
+                into <span className="font-medium text-ink">Codex · Claude Code · Hermes · Obsidian</span>.
+                Nothing runs from here. A stage turns{" "}
                 <span className="font-medium text-ink">done</span> only when its output file exists.
               </>
             )}
