@@ -3,8 +3,9 @@
  * and every contract points at a real pattern.
  *
  * The point of the contract is that CONTENT stops being one generic line: Save
- * Context declares Thread · Instance · Writer, Session Start declares Task ID +
- * the tasklist. These tests keep the declaration honest and complete.
+ * Context declares Thread · Instance · Writer, Session Start declares Raw
+ * Content (a Task ID or description) + the tasklist. These tests keep the
+ * declaration honest and complete.
  */
 
 import { describe, it } from "node:test";
@@ -103,7 +104,7 @@ describe("prefill is true or empty, per field", () => {
 
   it("session-start prefills the next task and its tasklist", () => {
     const i = input({ tasklists: [active], threads: [thread] });
-    assert.equal(prefillField("session-start", "Task ID", i), "T042");
+    assert.equal(prefillField("session-start", "Raw Content", i), "T042");
     assert.equal(
       prefillField("session-start", "File Reference", i),
       "Tasklists/2026-11-07-cycle-3-week-3-day-4-tasklist.md",
@@ -132,21 +133,23 @@ describe("prefill is true or empty, per field", () => {
     assert.equal(prefillField("save-context", "Thread", i), "daily-tasks");
   });
 
-  it("weekly-review prefills the identifier and leaves the data empty", () => {
-    assert.equal(prefillField("weekly-review", "Raw Content", input()), "Cycle 3 · Week 3");
+  it("weekly-review prefills cycle and week, leaves the evidence empty", () => {
+    assert.equal(prefillField("weekly-review", "Cycle Number", input()), "3");
+    assert.equal(prefillField("weekly-review", "Week Number", input()), "3");
+    assert.equal(prefillField("weekly-review", "Strategic Context", input()), "");
     assert.equal(prefillField("artifact-capture", "Source", input()), "");
   });
 });
 
 describe("composition honours the declared shape", () => {
-  it("Save Context is seven lines, Tasklist Generation six", () => {
+  it("Save Context is seven lines, Tasklist Generation seven", () => {
     const save = CONTRACTS["save-context"];
     const saveLines = save.fields.map((f) => fieldLine(f.key, "", f.placeholder));
     assert.equal(lineCount(composeEnvelope("Save Context", saveLines, "")), 7);
 
     const gen = CONTRACTS["tasklist-generation"];
     const genLines = gen.fields.map((f) => fieldLine(f.key, "", f.placeholder));
-    assert.equal(lineCount(composeEnvelope("Tasklist Generation", genLines, "")), 6);
+    assert.equal(lineCount(composeEnvelope("Tasklist Generation", genLines, "")), 7);
   });
 
   it("contractFor finds a command and rejects an unknown one", () => {
@@ -160,12 +163,41 @@ describe("the create/execute guardrail (Define ≠ Kickstart)", () => {
     const defineKeys = CONTRACTS["define-workspace"].fields.map((f) => f.key);
     const kickKeys = CONTRACTS["kickstart-workspace"].fields.map((f) => f.key);
 
-    for (const k of ["Title", "Mission", "Outcome", "Tasks", "Create tasklist"]) {
+    for (const k of ["Mission", "Outcome", "Tasks", "Create tasklist", "Priority", "Due date"]) {
       assert.ok(defineKeys.includes(k), `define-workspace declares ${k}`);
       assert.ok(!kickKeys.includes(k), `kickstart-workspace must NOT declare ${k}`);
     }
-    assert.ok(kickKeys.includes("Workspace"), "kickstart-workspace declares Workspace");
-    assert.ok(!defineKeys.includes("Workspace"), "define-workspace must NOT declare Workspace");
+    // both declare Type + Title; the pattern's second field is Title, not "Workspace"
+    assert.ok(defineKeys.includes("Title"));
+    assert.ok(kickKeys.includes("Title"), "kickstart-workspace declares Title (the pattern's second field)");
+    assert.ok(!kickKeys.includes("Workspace"), "kickstart-workspace must NOT declare a 'Workspace' key");
+    assert.ok(!kickKeys.includes("Mode"), "kickstart-workspace must NOT declare Mode (not in the pattern)");
+  });
+});
+
+describe("the granular review pins (P005)", () => {
+  it("weekly-review declares Cycle + Week required, evidence optional", () => {
+    const wr = CONTRACTS["weekly-review"];
+    assert.deepEqual(
+      wr.fields.map((f) => f.key),
+      ["Cycle Number", "Week Number", "Strategic Context", "Data References", "Raw Notes"],
+    );
+    assert.equal(wr.fields[0].required, true);
+    assert.equal(wr.fields[1].required, true);
+    assert.equal(wr.fields[2].required, false);
+  });
+
+  it("b-bomb-promotion makes the content required, the file optional", () => {
+    const bb = CONTRACTS["b-bomb-promotion"];
+    assert.equal(bb.fields.find((f) => f.key === "Raw Content")?.required, true);
+    assert.equal(bb.fields.find((f) => f.key === "File Reference")?.required, false);
+    assert.ok(bb.fields.some((f) => f.key === "Chat Reference"));
+  });
+
+  it("session-start's required field is Raw Content, not Task ID", () => {
+    const ss = CONTRACTS["session-start"];
+    assert.equal(ss.fields.find((f) => f.key === "Raw Content")?.required, true);
+    assert.ok(!ss.fields.some((f) => f.key === "Task ID"));
   });
 });
 

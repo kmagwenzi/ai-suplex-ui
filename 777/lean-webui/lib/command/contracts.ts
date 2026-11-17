@@ -60,11 +60,11 @@ export const CONTRACTS: Record<string, CommandContract> = {
     purpose: "Turn a task into a battle-ready session start prompt.",
     fields: [
       {
-        key: "Task ID",
-        kind: "text",
+        key: "Raw Content",
+        kind: "raw",
         required: true,
-        placeholder: "<e.g. T009>",
-        hint: "the task this session will execute",
+        placeholder: "<Task ID e.g. T009, or a full task description>",
+        hint: "the task this session executes — a Task ID or a description",
       },
       {
         key: "File Reference",
@@ -72,6 +72,13 @@ export const CONTRACTS: Record<string, CommandContract> = {
         required: false,
         placeholder: "<Tasklists/….md>",
         hint: "the tasklist the task lives in",
+      },
+      {
+        key: "Chat Reference",
+        kind: "text",
+        required: false,
+        placeholder: "<previous conversation output>",
+        hint: "optional pointer to an earlier chat",
       },
     ],
     additionalHint: "Save to, Open in new tab",
@@ -110,7 +117,7 @@ export const CONTRACTS: Record<string, CommandContract> = {
         kind: "source",
         required: true,
         placeholder: "<pick a source>",
-        hint: "the raw work — a conversation, a vault file, or pasted text",
+        hint: "the raw work — one primary source at a time (the pattern allows several)",
         sourceTypes: ["chat-reference", "vault-file", "raw"],
       },
     ],
@@ -169,6 +176,13 @@ export const CONTRACTS: Record<string, CommandContract> = {
         placeholder: "<a plan or a week note>",
         hint: "optional context for the plan",
       },
+      {
+        key: "Chat Reference",
+        kind: "text",
+        required: false,
+        placeholder: "<previously discussed changes>",
+        hint: "optional pointer to an earlier chat",
+      },
     ],
     additionalHint: "Save to <path>",
   },
@@ -179,21 +193,42 @@ export const CONTRACTS: Record<string, CommandContract> = {
     purpose: "Turn a week's sessions into strategic intelligence.",
     fields: [
       {
-        key: "Raw Content",
-        kind: "raw",
+        key: "Cycle Number",
+        kind: "text",
         required: true,
-        placeholder: "<the week's sessions, artifacts, blockers>",
-        hint: "the identifier alone is not the data — paste what happened",
+        placeholder: "<e.g. 3>",
+        hint: "the cycle under review — prefilled from the vault",
       },
       {
-        key: "File Reference",
-        kind: "vault-file",
+        key: "Week Number",
+        kind: "text",
+        required: true,
+        placeholder: "<e.g. 5>",
+        hint: "the week under review — prefilled from the vault",
+      },
+      {
+        key: "Strategic Context",
+        kind: "raw",
         required: false,
-        placeholder: "<the week's review or plan>",
-        hint: "optional file to read alongside",
+        placeholder: "<goals set this week, external factors, special considerations>",
+        hint: "what framed the week — a reduced-capacity week says so here",
+      },
+      {
+        key: "Data References",
+        kind: "raw",
+        required: false,
+        placeholder: "<session files, folders, trackers to examine>",
+        hint: "the evidence to read — Sessions, Artifacts, Trackers",
+      },
+      {
+        key: "Raw Notes",
+        kind: "raw",
+        required: false,
+        placeholder: "<additional observations or priorities>",
+        hint: "anything else the review must weigh",
       },
     ],
-    additionalHint: "Save to Reviews/",
+    additionalHint: "Save to Reviews/<Period>/Weekly/Cycle X/Week Y/",
   },
 
   "b-bomb-promotion": {
@@ -202,18 +237,25 @@ export const CONTRACTS: Record<string, CommandContract> = {
     purpose: "Promote an artifact to a polished B-Bomb.",
     fields: [
       {
-        key: "File Reference",
-        kind: "vault-file",
-        required: true,
-        placeholder: "<Artifacts/….md>",
-        hint: "the artifact to promote",
-      },
-      {
         key: "Raw Content",
         kind: "raw",
+        required: true,
+        placeholder: "<paste the artifact content — code, notes, research>",
+        hint: "the artifact's content — required, it is what gets promoted",
+      },
+      {
+        key: "File Reference",
+        kind: "vault-file",
         required: false,
-        placeholder: "<paste the artifact content>",
-        hint: "or paste the content instead of pointing at a file",
+        placeholder: "<Artifacts/….md>",
+        hint: "the source artifact, for the original context",
+      },
+      {
+        key: "Chat Reference",
+        kind: "text",
+        required: false,
+        placeholder: "<the creation session, in one line>",
+        hint: "optional pointer to the conversation that made it",
       },
     ],
     additionalHint: "Save to B-Bombs/<Period>/Cycle X/Week Y/",
@@ -291,6 +333,23 @@ export const CONTRACTS: Record<string, CommandContract> = {
         hint: "committer or producer — the write-scope (R8)",
         options: MODES,
       },
+      {
+        key: "Priority",
+        section: "SETTINGS",
+        kind: "enum",
+        required: false,
+        placeholder: "<High | Medium | Low>",
+        hint: "how urgent this workspace is",
+        options: ["High", "Medium", "Low"],
+      },
+      {
+        key: "Due date",
+        section: "SETTINGS",
+        kind: "text",
+        required: false,
+        placeholder: "<optional>",
+        hint: "a due date, or leave optional",
+      },
     ],
     additionalHint: "Skip memory loop",
   },
@@ -310,21 +369,13 @@ export const CONTRACTS: Record<string, CommandContract> = {
         options: WORKSPACE_TYPE_OPTIONS,
       },
       {
-        key: "Workspace",
+        key: "Title",
+        label: "Workspace",
         section: "WORKSPACE",
         kind: "instance",
         required: false,
-        placeholder: "<slug or ref>",
+        placeholder: "<title, slug, or ref>",
         hint: "which workspace to run — omit when only one is open",
-      },
-      {
-        key: "Mode",
-        section: "SETTINGS",
-        kind: "enum",
-        required: false,
-        placeholder: "<Trusted local agent | Contributor agent>",
-        hint: "committer or producer",
-        options: MODES,
       },
     ],
     additionalHint: "Skip memory loop",
@@ -351,7 +402,7 @@ export function prefillField(name: string, key: string, input: PrefillInput): st
   if (name === "session-start") {
     const active = input.tasklists.find((t) => t.status === "active" && isDailyTasklist(t.file));
     if (!active) return "";
-    if (key === "Task ID") return active.next ?? "";
+    if (key === "Raw Content") return active.next ?? "";
     if (key === "File Reference") return `Tasklists/${active.file}`;
     return "";
   }
@@ -368,8 +419,10 @@ export function prefillField(name: string, key: string, input: PrefillInput): st
     return "";
   }
 
-  if (name === "weekly-review" && key === "Raw Content") {
-    return `Cycle ${input.cycle} · Week ${input.week}`;
+  if (name === "weekly-review") {
+    if (key === "Cycle Number") return String(input.cycle);
+    if (key === "Week Number") return String(input.week);
+    return "";
   }
 
   return "";
