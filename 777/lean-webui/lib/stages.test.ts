@@ -190,6 +190,24 @@ describe("deriveStages — copied ≠ done", () => {
   });
 });
 
+describe("deriveStages — never asserts an unverifiable stage", () => {
+  it("marks session-start unverified, because Sessions/ is not on the read surface", () => {
+    const stages = deriveStages({ ...base(), activeDailyTasklistToday: true });
+    const ss = stages.find((s) => s.id === "session-start");
+    assert.ok(ss);
+    assert.equal(ss.state, "current");
+    assert.equal(ss.verified, false);
+    assert.doesNotMatch(ss.reason, /next command/i);
+  });
+
+  it("keeps a verifiable stage verified (save-context has a real signal)", () => {
+    const stages = deriveStages({ ...base(), activeDailyTasklistToday: true });
+    const sc = stages.find((s) => s.id === "save-context");
+    assert.ok(sc);
+    assert.equal(sc.verified, true);
+  });
+});
+
 describe("deriveStages — shape", () => {
   it("returns exactly the 10 spine stages in order", () => {
     assert.deepStrictEqual(

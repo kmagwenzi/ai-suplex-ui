@@ -1,5 +1,6 @@
 import { readConsoleData, readTasklistBody } from "@/lib/mcp/resources";
 import { todayDailyTasklist } from "@/lib/stages";
+import { stripFrontmatter } from "@/lib/markdown";
 import { SessionConsole } from "@/components/session-console";
 import { DebugOverlay } from "@/components/debug-overlay";
 
@@ -40,7 +41,11 @@ export default async function Session({
   if (active) {
     const read = await readTasklistBody(active.file);
     if (read.body) {
-      tasklist = { file: active.file, title: active.title || active.file, content: read.body };
+      tasklist = {
+        file: active.file,
+        title: active.title || active.file,
+        content: stripFrontmatter(read.body),
+      };
     } else {
       // found-but-unreadable is a different sentence from not-found
       tasklistError = "found " + active.file + " but could not read it (tried " + read.tried.join(" · ") + ")";

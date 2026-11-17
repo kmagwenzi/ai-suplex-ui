@@ -186,6 +186,20 @@ export function deriveStages(signals: Signals): DerivedStage[] {
     ritual: null,
   };
 
+  // What the console can actually see, per stage: true / false / null (unknown).
+  const signal: Record<StageId, boolean | null> = {
+    plan: signals.activeDailyTasklistToday,
+    context: signals.contextDate === null ? null : signals.contextDate === today,
+    "session-start": signals.sessionStartToday,
+    execute: null,
+    capture: signals.artifactToday,
+    close: signals.endReportToday,
+    remember: signals.episodeToday,
+    "save-context": signals.instanceWrittenToday,
+    review: signals.weeklyReviewThisWeek,
+    ritual: signals.ritualThisWeek,
+  };
+
   // The frontier is the first stage that is neither done nor blocked.
   const frontierIdx = STAGE_META.findIndex((m) => !done[m.id] && !blocked[m.id]);
 
@@ -201,7 +215,11 @@ export function deriveStages(signals: Signals): DerivedStage[] {
       reason = blocked[meta.id] as string;
     } else if (i === frontierIdx) {
       state = "current";
-      reason = currentReason(meta.id);
+      // An unverifiable frontier is a guess: say so instead of promising the next action.
+      reason =
+        signal[meta.id] === null
+          ? "the console cannot see whether this already ran"
+          : currentReason(meta.id);
     } else if (i < frontierIdx) {
       state = "skipped";
       reason = "bypassed — no output required";
@@ -210,7 +228,7 @@ export function deriveStages(signals: Signals): DerivedStage[] {
       reason = "upcoming";
     }
 
-    return { ...meta, state, reason };
+    return { ...meta, state, reason, verified: signal[meta.id] !== null };
   });
 }
 

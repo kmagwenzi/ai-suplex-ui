@@ -76,11 +76,22 @@ export default async function Today({
               {current.name}
             </div>
             <div className="mt-1 text-[13px] text-ink-2">{current.reason}</div>
+            {current.verified ? null : (
+              <p className="mt-2 max-w-[60ch] rounded-md border border-border bg-surface p-3 text-[12px] text-ink-2">
+                <span className="font-medium text-ink">Not verifiable yet.</span>{" "}
+                This stage&apos;s output lives where the console cannot read —{" "}
+                <code className="mono text-[11px]">Sessions/</code>,{" "}
+                <code className="mono text-[11px]">Artifacts/</code>,{" "}
+                <code className="mono text-[11px]">Memory/episodic/</code>. If you
+                already ran it, this strip is behind — the console will not claim
+                otherwise.
+              </p>
+            )}
           </section>
 
           <section className="mt-7" aria-labelledby="next-command">
             <div className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
-              next command
+              {current.verified ? "next command" : "possible next command"}
             </div>
             <div className="mt-2 rounded-lg border border-border bg-surface px-4 py-3">
               <div className="flex items-baseline justify-between gap-3">

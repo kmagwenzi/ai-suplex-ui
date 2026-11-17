@@ -90,6 +90,11 @@ export interface StageMeta {
 export interface DerivedStage extends StageMeta {
   state: StageState;
   reason: string;
+  /**
+   * False when the stage's output signal is not on the read surface. The strip
+   * may still call it `current`, but the console must not *assert* it.
+   */
+  verified: boolean;
 }
 
 /**
