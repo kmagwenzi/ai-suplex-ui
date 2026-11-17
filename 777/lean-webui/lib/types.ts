@@ -30,6 +30,19 @@ export interface TasklistSummary {
   nextTitle?: string;
 }
 
+/** What the vault can prove about today (`asmc open --json` → activity). */
+export interface Activity {
+  date: string;
+  sessionStart: boolean;
+  sessionEnd: boolean;
+  /** A start after the latest end: the day is open, so Close is not done. */
+  sessionOpen: boolean;
+  latestStart: string | null;
+  latestEnd: string | null;
+  artifacts: number;
+  episodes: number;
+}
+
 export interface OperatorBrief {
   vault: string;
   date: string; // ISO `yyyy-mm-dd`
@@ -39,6 +52,8 @@ export interface OperatorBrief {
   open: number;
   instances: Instance[];
   tasklists: TasklistSummary[];
+  /** Present on vaults whose asmc reports activity; absent → signals stay null. */
+  activity?: Activity;
 }
 
 // ── the approval inbox (`suplex://approvals`) ───────────────────────────────

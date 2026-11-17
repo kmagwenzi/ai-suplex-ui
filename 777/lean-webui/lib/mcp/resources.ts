@@ -116,17 +116,19 @@ export function buildSignals(
 ): Signals {
   const today = localToday();
   const list = tasklists.tasklists ?? brief.tasklists ?? [];
+  const activity = brief.activity ?? null;
   return {
     today,
     activeDailyTasklistToday: list.some(
       (t) => t.status === "active" && isDailyTasklist(t.file) && t.file.startsWith(today),
     ),
     contextDate: brief.date ?? null,
-    // Not on the W1 read surface — unknown, never treated as done.
-    sessionStartToday: null,
-    artifactToday: null,
-    endReportToday: null,
-    episodeToday: null,
+    // Today's activity, when the vault reports it; otherwise unknown (never "done").
+    sessionStartToday: activity ? activity.sessionStart : null,
+    artifactToday: activity ? activity.artifacts > 0 : null,
+    // An end after the latest start closes the day; a start after it re-opens it.
+    endReportToday: activity ? activity.sessionEnd && !activity.sessionOpen : null,
+    episodeToday: activity ? activity.episodes > 0 : null,
     weeklyReviewThisWeek: null,
     ritualThisWeek: null,
     instanceWrittenToday: (threads.length ? threads : brief.instances ?? []).some(

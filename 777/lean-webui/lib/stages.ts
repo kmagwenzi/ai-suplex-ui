@@ -178,8 +178,10 @@ export function deriveStages(signals: Signals): DerivedStage[] {
         ? "no open session to close"
         : null,
     remember:
-      signals.endReportToday === false
-        ? "no Session End report for today"
+      signals.sessionStartToday === true && signals.endReportToday === false
+        ? "the open session has not been closed yet"
+        : signals.endReportToday === false
+          ? "no Session End report for today"
         : null,
     "save-context": null,
     review: null,
@@ -191,7 +193,7 @@ export function deriveStages(signals: Signals): DerivedStage[] {
     plan: signals.activeDailyTasklistToday,
     context: signals.contextDate === null ? null : signals.contextDate === today,
     "session-start": signals.sessionStartToday,
-    execute: null,
+    execute: signals.sessionStartToday,
     capture: signals.artifactToday,
     close: signals.endReportToday,
     remember: signals.episodeToday,
@@ -201,13 +203,23 @@ export function deriveStages(signals: Signals): DerivedStage[] {
   };
 
   // The frontier is the first stage that is neither done nor blocked.
-  const frontierIdx = STAGE_META.findIndex((m) => !done[m.id] && !blocked[m.id]);
+  // Execute is not a checkpoint: it has no output file, so it can never be the
+  // frontier — otherwise the strip would stall there forever.
+  const frontierIdx = STAGE_META.findIndex(
+    (m) => m.id !== "execute" && !done[m.id] && !blocked[m.id],
+  );
 
   return STAGE_META.map((meta, i) => {
     let state: StageState;
     let reason: string;
 
-    if (done[meta.id]) {
+    if (meta.id === "execute") {
+      state = "skipped";
+      reason =
+        signals.sessionStartToday === true
+          ? "in progress — execution has no output file"
+          : "the work is the human's lane";
+    } else if (done[meta.id]) {
       state = "done";
       reason = doneReason(meta.id, signals);
     } else if (blocked[meta.id]) {
@@ -240,6 +252,8 @@ function doneReason(id: StageId, s: Signals): string {
       return "context fresh (date = today)";
     case "session-start":
       return "Session Start file exists for today";
+    case "execute":
+      return "session open — the work itself has no output file";
     case "capture":
       return "an artifact was captured today";
     case "close":

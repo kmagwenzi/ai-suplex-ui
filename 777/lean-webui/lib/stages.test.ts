@@ -93,10 +93,12 @@ describe("deriveStages — the frontier", () => {
     assert.strictEqual(stateOf(s, "session-start"), "current");
   });
 
-  it("moves to Execute once the session is started", () => {
+  it("steps over Execute once the session is started", () => {
     const s = base({ activeDailyTasklistToday: true, sessionStartToday: true });
     assert.strictEqual(stateOf(s, "session-start"), "done");
-    assert.strictEqual(stateOf(s, "execute"), "current");
+    // Execute is not a checkpoint — it can never hold the frontier.
+    assert.strictEqual(stateOf(s, "execute"), "skipped");
+    assert.strictEqual(stateOf(s, "capture"), "current");
   });
 });
 
@@ -158,8 +160,8 @@ describe("deriveStages — done / blocked / skipped", () => {
     assert.strictEqual(states["save-context"], "done");
     assert.strictEqual(states.review, "done");
     assert.strictEqual(states.ritual, "done");
-    // Execute is the human lane — no output file, never "done".
-    assert.strictEqual(states.execute, "current");
+    // Execute is the human lane — no output file, never "done", never the frontier.
+    assert.strictEqual(states.execute, "skipped");
   });
 });
 
