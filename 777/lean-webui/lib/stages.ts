@@ -156,7 +156,7 @@ export function deriveStages(signals: Signals): DerivedStage[] {
     remember: signals.episodeToday === true,
     "save-context": signals.instanceWrittenToday,
     review: signals.weeklyReviewThisWeek === true,
-    ritual: signals.ritualThisWeek === true,
+    ritual: signals.ritualToday === true,
   };
 
   const blocked: Record<StageId, string | null> = {
@@ -199,7 +199,7 @@ export function deriveStages(signals: Signals): DerivedStage[] {
     remember: signals.episodeToday,
     "save-context": signals.instanceWrittenToday,
     review: signals.weeklyReviewThisWeek,
-    ritual: signals.ritualThisWeek,
+    ritual: signals.ritualToday,
   };
 
   // The frontier is the first stage that is neither done nor blocked.

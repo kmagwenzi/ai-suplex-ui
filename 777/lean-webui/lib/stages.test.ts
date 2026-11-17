@@ -16,7 +16,7 @@ function base(overrides: Partial<Signals> = {}): Signals {
     episodeToday: null,
     instanceWrittenToday: false,
     weeklyReviewThisWeek: null,
-    ritualThisWeek: null,
+    ritualToday: null,
     ...overrides,
   };
 }
@@ -146,7 +146,7 @@ describe("deriveStages — done / blocked / skipped", () => {
       episodeToday: true,
       instanceWrittenToday: true,
       weeklyReviewThisWeek: true,
-      ritualThisWeek: true,
+      ritualToday: true,
     });
     const states = Object.fromEntries(
       deriveStages(s).map((x) => [x.id, x.state]),
@@ -177,7 +177,7 @@ describe("deriveStages — copied ≠ done", () => {
       episodeToday: null,
       instanceWrittenToday: false,
       weeklyReviewThisWeek: null,
-      ritualThisWeek: null,
+      ritualToday: null,
     };
     const done = deriveStages(s).filter((x) => x.state === "done");
     assert.deepStrictEqual(

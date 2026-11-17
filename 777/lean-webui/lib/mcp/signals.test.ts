@@ -50,6 +50,25 @@ describe("buildSignals — activity, when the vault reports it", () => {
     assert.equal(s.endReportToday, true);
   });
 
+  it("maps the weekly proof: review and ritual", () => {
+    const weekly = {
+      review: true,
+      reviewFile: "Week 5 Review.md",
+      ritual: false,
+      lastRitual: "2026-11-01",
+      ritualDays: 16,
+    };
+    const s = buildSignals(brief({ activity: { ...activity, weekly } }), brief(), []);
+    assert.equal(s.weeklyReviewThisWeek, true);
+    assert.equal(s.ritualToday, false);
+  });
+
+  it("leaves the weekly signals null when the vault reports no weekly block", () => {
+    const s = buildSignals(brief({ activity }), brief(), []);
+    assert.equal(s.weeklyReviewThisWeek, null);
+    assert.equal(s.ritualToday, null);
+  });
+
   it("leaves every signal null when the vault reports no activity", () => {
     const s = buildSignals(brief(), brief(), []);
     assert.equal(s.sessionStartToday, null);

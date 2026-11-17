@@ -41,6 +41,14 @@ export interface Activity {
   latestEnd: string | null;
   artifacts: number;
   episodes: number;
+  /** The weekly proof: a review file for this cycle/week, and a fresh ritual receipt. */
+  weekly?: {
+    review: boolean;
+    reviewFile: string | null;
+    ritual: boolean;
+    lastRitual: string | null;
+    ritualDays: number | null;
+  };
 }
 
 export interface OperatorBrief {
@@ -127,6 +135,12 @@ export interface Signals {
   endReportToday: boolean | null;
   episodeToday: boolean | null;
   instanceWrittenToday: boolean;
+  /** A review file exists for the vault's current cycle/week folder. */
   weeklyReviewThisWeek: boolean | null;
-  ritualThisWeek: boolean | null;
+  /**
+   * A ritual receipt dated TODAY (parity with `sweeper verify-ritual-log`).
+   * Not "this week": period.md rules that cycle/week labels are nominal, so any
+   * arithmetic week window would invent a rule that drifts.
+   */
+  ritualToday: boolean | null;
 }

@@ -129,8 +129,8 @@ export function buildSignals(
     // An end after the latest start closes the day; a start after it re-opens it.
     endReportToday: activity ? activity.sessionEnd && !activity.sessionOpen : null,
     episodeToday: activity ? activity.episodes > 0 : null,
-    weeklyReviewThisWeek: null,
-    ritualThisWeek: null,
+    weeklyReviewThisWeek: activity?.weekly ? activity.weekly.review : null,
+    ritualToday: activity?.weekly ? activity.weekly.ritual : null,
     instanceWrittenToday: (threads.length ? threads : brief.instances ?? []).some(
       (i) => typeof i.opened === "string" && i.opened.startsWith(today),
     ),
