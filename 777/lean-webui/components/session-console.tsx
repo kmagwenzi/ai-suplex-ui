@@ -30,7 +30,13 @@ function sections(md: string): { heading: string; body: string }[] {
   return out;
 }
 
-export function SessionConsole({ tasklist }: { tasklist: ActiveTasklist | null }) {
+export function SessionConsole({
+  tasklist,
+  tasklistError = null,
+}: {
+  tasklist: ActiveTasklist | null;
+  tasklistError?: string | null;
+}) {
   // ── capture ──────────────────────────────────────────────────────────────
   const [type, setType] = useState<"artifact" | "insight" | "note">("artifact");
   const [focus, setFocus] = useState("");
@@ -135,8 +141,21 @@ export function SessionConsole({ tasklist }: { tasklist: ActiveTasklist | null }
           </div>
         ) : (
           <div className="mt-3 rounded-lg border border-border bg-surface p-5 text-[13px] text-ink-2">
-            No active daily tasklist for today. Tasklist editing is out of scope —
-            write the plan in your agent, then reload.
+            {tasklistError ? (
+              <>
+                <span className="font-medium text-error">
+                  Today&apos;s tasklist was found but could not be read.
+                </span>
+                <span className="mono mt-2 block break-words text-[11px] text-muted">
+                  {tasklistError}
+                </span>
+              </>
+            ) : (
+              <>
+                No active daily tasklist for today. Tasklist editing is out of scope —
+                write the plan in your agent, then reload.
+              </>
+            )}
           </div>
         )}
         <p className="mt-2 text-[12px] text-muted">

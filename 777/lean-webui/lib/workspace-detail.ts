@@ -17,6 +17,8 @@
 
 import type { Instance, TasklistSummary } from "./types";
 
+export { TASKLIST_DIRS, tasklistCandidates } from "./tasklist-paths";
+
 /** The route id for an instance: the context filename without `.md`. */
 export function instanceId(file: string): string {
   return file.replace(/\.md$/, "");
@@ -43,18 +45,6 @@ export function matchTasklistsFor(
   if (instance.singleton || !instance.slug) return [];
   const token = `-${instance.thread}-${instance.slug}`;
   return tasklists.filter((t) => t.file.includes(token));
-}
-
-/**
- * Where a tasklist body may live, in read order. `suplex://tasklist/{path}`
- * is jailed to `Tasklists/`, and the summary carries only the basename — so
- * the reader tries the known folders instead of guessing one.
- */
-export const TASKLIST_DIRS = ["Active", "Archive", "Combined"] as const;
-
-/** The resource paths to try for one tasklist basename. */
-export function tasklistCandidates(file: string): string[] {
-  return TASKLIST_DIRS.map((dir) => `Tasklists/${dir}/${file}`);
 }
 
 /** The human progress line: "3/18 done", or the typed empty. */

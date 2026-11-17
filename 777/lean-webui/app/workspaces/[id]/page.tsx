@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { readConsoleData, readMission, readTasklist } from "@/lib/mcp/resources";
+import { readConsoleData, readMission, readTasklistBody } from "@/lib/mcp/resources";
 import {
   findInstance,
   matchTasklistsFor,
-  tasklistCandidates,
   tasklistProgress,
 } from "@/lib/workspace-detail";
 import { writerLabel } from "@/lib/workspace-board";
@@ -11,29 +10,13 @@ import { workspaceLabel } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
-/** Read the first existing body for a tasklist basename; null when none reads. */
-async function readBody(file: string): Promise<string | null> {
-  for (const rel of tasklistCandidates(file)) {
-    const text = await readTasklist(rel).catch(() => null);
-    if (text) return text;
-  }
-  return null;
-}
-
 const Label = ({ children }: { children: string }) => (
   <dt className="mono inline text-[10px] uppercase tracking-[0.04em] text-muted">
     {children}{" "}
   </dt>
 );
 
-/**
- * The workspace deep view — one instance, everything the mcp v1 read surface
- * can honestly show: identity, its tasklists (canonical filename match, full
- * bodies via suplex://tasklist/{file}), and the typed unknowns (sessions and
- * captures are not on the read surface — the view says so, never fakes them).
- * The daily singleton additionally shows the Active Mission Context, whose
- * sole writer it is.
- */
+
 export default async function WorkspaceDetail({
   params,
 }: {
@@ -87,7 +70,7 @@ export default async function WorkspaceDetail({
     data.tasklists?.tasklists ?? data.brief.tasklists ?? [],
   );
   const bodies = await Promise.all(
-    tasklists.map(async (t) => ({ file: t.file, body: await readBody(t.file) })),
+    tasklists.map(async (t) => ({ file: t.file, body: (await readTasklistBody(t.file)).body })),
   );
   const mission =
     instance.singleton && instance.thread === "daily-tasks"

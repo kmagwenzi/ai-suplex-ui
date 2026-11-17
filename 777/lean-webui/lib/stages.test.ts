@@ -1,10 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import {
-  deriveStages,
-  isDailyTasklist,
-  STAGE_META,
-} from "./stages";
+import { STAGE_META, deriveStages, isDailyTasklist, todayDailyTasklist } from "./stages";
 import type { Signals, StageId, StageState } from "./types";
 
 const TODAY = "2026-10-31";
@@ -30,6 +26,36 @@ function stateOf(signals: Signals, id: StageId): StageState {
   assert.ok(stage, `missing stage ${id}`);
   return stage.state;
 }
+
+describe("todayDailyTasklist — today's plan, not last week's", () => {
+  const rows = [
+    { file: "2026-11-12-cycle-3-week-4-day-3-old-tasklist.md", status: "active" },
+    { file: "2026-11-17-cycle-3-week-5-day-1-2-zesa-tasklist.md", status: "active" },
+    { file: "2026-11-17-project-tasks-777-console-tasklist.md", status: "active" },
+    { file: "2026-11-17-random-tasks-quick-wins-tasklist.md", status: "active" },
+    { file: "2026-11-17-cycle-3-week-5-old-tasklist.md", status: "parked" },
+  ];
+
+  it("picks today's non-thread tasklist", () => {
+    assert.equal(
+      todayDailyTasklist(rows, "2026-11-17")?.file,
+      "2026-11-17-cycle-3-week-5-day-1-2-zesa-tasklist.md",
+    );
+  });
+
+  it("never returns a thread tasklist", () => {
+    const picked = todayDailyTasklist(rows, "2026-11-17")?.file ?? "";
+    assert.ok(!/-(project-tasks|random-tasks)-/.test(picked));
+  });
+
+  it("never returns an older day's tasklist", () => {
+    assert.equal(todayDailyTasklist(rows, "2026-11-18"), undefined);
+  });
+
+  it("ignores parked plans", () => {
+    assert.equal(todayDailyTasklist([{ file: "2026-11-17-x-tasklist.md", status: "parked" }], "2026-11-17"), undefined);
+  });
+});
 
 describe("isDailyTasklist", () => {
   it("marks date-prefixed plans as daily, thread instances as not", () => {

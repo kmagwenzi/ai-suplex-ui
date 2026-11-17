@@ -9,6 +9,7 @@
 import { getClient } from "./client";
 import type { Approvals, Instance, OperatorBrief, Signals } from "../types";
 import { isDailyTasklist } from "../stages";
+import { tasklistCandidates } from "../tasklist-paths";
 
 export const RESOURCE_URIS = {
   context: "suplex://context",
@@ -173,4 +174,26 @@ export async function readConsoleData(): Promise<ConsoleData> {
     : null;
 
   return { today: localToday(), brief, tasklists, threads, signals, failed };
+}
+
+
+export interface TasklistBody {
+  file: string;
+  body: string | null;
+  tried: string[];
+}
+
+/**
+ * Read a tasklist body by basename, trying Tasklists/{Active,Archive,Combined}.
+ * Returns the paths it tried, so a caller can tell "no such tasklist" from
+ * "it exists but could not be read" — two different sentences.
+ */
+export async function readTasklistBody(file: string): Promise<TasklistBody> {
+  const tried: string[] = [];
+  for (const rel of tasklistCandidates(file)) {
+    tried.push(rel);
+    const text = await readTasklist(rel).catch(() => null);
+    if (text) return { file, body: text, tried };
+  }
+  return { file, body: null, tried };
 }

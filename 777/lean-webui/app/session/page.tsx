@@ -1,5 +1,5 @@
-import { readConsoleData, readTasklist } from "@/lib/mcp/resources";
-import { isDailyTasklist } from "@/lib/stages";
+import { readConsoleData, readTasklistBody } from "@/lib/mcp/resources";
+import { todayDailyTasklist } from "@/lib/stages";
 import { SessionConsole } from "@/components/session-console";
 import { DebugOverlay } from "@/components/debug-overlay";
 
@@ -33,20 +33,17 @@ export default async function Session({
   }
 
   const list = data.tasklists?.tasklists ?? data.brief.tasklists ?? [];
-  const active = list.find(
-    (t) => t.status === "active" && isDailyTasklist(t.file),
-  );
+  const active = todayDailyTasklist(list, data.today);
 
   let tasklist: { file: string; title: string; content: string } | null = null;
+  let tasklistError: string | null = null;
   if (active) {
-    try {
-      tasklist = {
-        file: active.file,
-        title: active.title || active.file,
-        content: await readTasklist(active.file),
-      };
-    } catch {
-      tasklist = null; // a missing/unreadable tasklist degrades to the empty state
+    const read = await readTasklistBody(active.file);
+    if (read.body) {
+      tasklist = { file: active.file, title: active.title || active.file, content: read.body };
+    } else {
+      // found-but-unreadable is a different sentence from not-found
+      tasklistError = "found " + active.file + " but could not read it (tried " + read.tried.join(" · ") + ")";
     }
   }
 
@@ -61,7 +58,7 @@ export default async function Session({
         the console never touches the vault directly.
       </p>
 
-      <SessionConsole tasklist={tasklist} />
+      <SessionConsole tasklist={tasklist} tasklistError={tasklistError} />
 
       {debug ? <DebugOverlay /> : null}
     </main>

@@ -120,6 +120,20 @@ export const EXECUTOR_LABEL: Record<Executor, string> = {
   "tool+human": "tool + human",
 };
 
+/**
+ * Today's daily plan: active, not a thread instance, and date-prefixed with
+ * today. An old active tasklist is NOT today's session — picking it would
+ * show last week's plan under today's heading.
+ */
+export function todayDailyTasklist<T extends { file: string; status: string }>(
+  list: T[],
+  today: string,
+): T | undefined {
+  return list.find(
+    (t) => t.status === "active" && isDailyTasklist(t.file) && t.file.startsWith(today),
+  );
+}
+
 /** A tasklist filename is a *daily* plan when it is not a thread instance. */
 export function isDailyTasklist(file: string): boolean {
   return !/-(project-tasks|random-tasks|long-running|week-reset)-/.test(file);
