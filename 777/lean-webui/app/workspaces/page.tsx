@@ -1,5 +1,6 @@
 import { readConsoleData } from "@/lib/mcp/resources";
 import { WorkspacesBoard } from "@/components/workspaces-board";
+import { WorkspaceCreate } from "@/components/workspace-create";
 import { DebugOverlay } from "@/components/debug-overlay";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,8 @@ export default async function Workspaces({
       <section className="mt-8" aria-label="Workspaces">
         <WorkspacesBoard instances={instances} />
       </section>
+
+      <WorkspaceCreate />
 
       {debug ? <DebugOverlay /> : null}
     </main>

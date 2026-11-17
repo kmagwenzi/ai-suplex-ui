@@ -16,6 +16,11 @@ export interface ToolResult {
   decision?: string;
   item?: string;
   executed?: string | null;
+  /** suplex_workspace_create */
+  ref?: number;
+  instance?: string;
+  tasklist?: string;
+  threadsRefreshed?: boolean;
 }
 
 function parseToolResult(result: unknown, name: string): ToolResult {
