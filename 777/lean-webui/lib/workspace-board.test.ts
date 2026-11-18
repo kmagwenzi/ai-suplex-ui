@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { groupByWorkspaceType, writerLabel } from "./workspace-board";
+import { groupByWorkspaceType, visibleRows, writerLabel } from "./workspace-board";
 import type { Instance } from "./types";
 
 function inst(overrides: Partial<Instance> = {}): Instance {
@@ -64,3 +64,25 @@ describe("writerLabel", () => {
     assert.equal(writerLabel(undefined), "—");
   });
 });
+
+describe("visibleRows — collapse, but never silently", () => {
+  const rows = [1, 2, 3, 4, 5];
+
+  it("shows everything when the list fits", () => {
+    const r = rows.slice(0, 3);
+    assert.deepEqual(visibleRows(r, false), { shown: r, hidden: 0 });
+  });
+
+  it("collapses to the limit and reports what it hides", () => {
+    assert.deepEqual(visibleRows(rows, false), { shown: [1, 2, 3], hidden: 2 });
+  });
+
+  it("shows all when expanded", () => {
+    assert.deepEqual(visibleRows(rows, true), { shown: rows, hidden: 0 });
+  });
+
+  it("honours a custom limit", () => {
+    assert.deepEqual(visibleRows(rows, false, 1), { shown: [1], hidden: 4 });
+  });
+});
+

@@ -11,6 +11,22 @@
 import type { Instance } from "./types";
 import { WORKSPACE_LABEL, WORKSPACE_LANES, type WorkspaceLane } from "./workspace";
 
+/** How many rows a section shows before it collapses. */
+export const COLLAPSE_AT = 3;
+
+/**
+ * A section shows at most COLLAPSE_AT rows until expanded, and always reports
+ * how many it is hiding — a silent cut-off is a lie about the size of the list.
+ */
+export function visibleRows<T>(
+  rows: T[],
+  expanded: boolean,
+  limit: number = COLLAPSE_AT,
+): { shown: T[]; hidden: number } {
+  if (expanded || rows.length <= limit) return { shown: rows, hidden: 0 };
+  return { shown: rows.slice(0, limit), hidden: rows.length - limit };
+}
+
 export interface WorkspaceGroup {
   lane: WorkspaceLane;
   label: string;

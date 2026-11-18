@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Instance } from "@/lib/types";
-import { groupByWorkspaceType, writerLabel } from "@/lib/workspace-board";
+import {
+  COLLAPSE_AT,
+  groupByWorkspaceType,
+  visibleRows,
+  writerLabel,
+} from "@/lib/workspace-board";
 import { workspaceLabel } from "@/lib/workspace";
 
 /** A workspace's human name: the client label for a singleton, else its slug. */
@@ -19,6 +24,7 @@ function instanceName(i: Instance): string {
  */
 export function WorkspacesBoard({ instances }: { instances: Instance[] }) {
   const [showClosed, setShowClosed] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const groups = groupByWorkspaceType(instances);
 
   const visible = (list: Instance[]) =>
@@ -75,8 +81,8 @@ export function WorkspacesBoard({ instances }: { instances: Instance[] }) {
                   — no {showClosed ? "" : "open "}workspaces —
                 </p>
               ) : (
-                <ul className="mt-3 space-y-3">
-                  {rows.map((i) => (
+                <ul id={`ws-list-${g.lane}`} className="mt-3 space-y-3">
+                  {visibleRows(rows, !!expanded[g.lane]).shown.map((i) => (
                     <li
                       key={i.file}
                       className="rounded-md border border-border bg-surface-2 p-3"
@@ -142,6 +148,22 @@ export function WorkspacesBoard({ instances }: { instances: Instance[] }) {
                   ))}
                 </ul>
               )}
+
+              {rows.length > COLLAPSE_AT ? (
+                <button
+                  type="button"
+                  aria-expanded={!!expanded[g.lane]}
+                  aria-controls={`ws-list-${g.lane}`}
+                  onClick={() =>
+                    setExpanded((prev) => ({ ...prev, [g.lane]: !prev[g.lane] }))
+                  }
+                  className="mono mt-3 text-[12px] text-accent hover:text-accent-ink"
+                >
+                  {expanded[g.lane]
+                    ? "show fewer"
+                    : `show all ${rows.length}`}
+                </button>
+              ) : null}
             </section>
           );
         })}
