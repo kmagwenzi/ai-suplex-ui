@@ -185,7 +185,7 @@ export default async function Today({
               rel="noreferrer"
               className="mt-2 inline-block text-[13px] text-accent hover:text-accent-ink"
             >
-              Ultra — the paid harness →
+              AI-Suplex Ultra: Add reasoning over 777 captures →
             </a>
           </section>
         </div>

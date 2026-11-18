@@ -49,11 +49,11 @@ export default async function Workspaces({
         the composer.
       </p>
 
+      <WorkspaceCreate />
+
       <section className="mt-8" aria-label="Workspaces">
         <WorkspacesBoard instances={instances} />
       </section>
-
-      <WorkspaceCreate />
 
       {debug ? <DebugOverlay /> : null}
     </main>
