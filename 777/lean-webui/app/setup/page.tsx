@@ -1,6 +1,7 @@
 import path from "node:path";
 import { getClient, harnessPath } from "@/lib/mcp/client";
 import { readContext } from "@/lib/mcp/resources";
+import { VaultPicker } from "@/components/vault-picker";
 import type { OperatorBrief } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -51,10 +52,13 @@ export default async function Setup() {
         Setup
       </h1>
       <p className="mt-2 max-w-[62ch] text-[13px] text-ink-2">
-        First run. The console is read-only on the vault — it detects and
-        documents the link, it never writes it. Linking is one harness-local
-        command you run once.
+        First run. The console is read-only <em>inside</em> the vault — it never
+        writes your notes. It does record <em>which</em> vault to open, in its own
+        <span className="mono text-[12px]"> .console.json</span>, and hands that to the
+        harness as <span className="mono text-[12px]">AISUPLEX_VAULT</span>.
       </p>
+
+      <VaultPicker />
 
       {/* detect + connect */}
       <section className="mt-8 rounded-lg border border-border bg-surface p-6" aria-label="Vault and connection">

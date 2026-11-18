@@ -67,6 +67,7 @@ export function Header() {
     { href: "/commands", label: "Commands" },
     { href: "/session", label: "Session" },
     { href: "/memory", label: "Memory" },
+    { href: "/guides/ai-suplex-commands", label: "Guides" },
     { href: "/setup", label: "Setup" },
   ];
 

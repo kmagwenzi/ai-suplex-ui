@@ -179,6 +179,14 @@ export default async function Today({
               <span className="dot dot-muted" />
               graph · insight · shell · fleet — not installed
             </div>
+            <a
+              href="https://ultra.ai-suplex.co.zw"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-[13px] text-accent hover:text-accent-ink"
+            >
+              Ultra — the paid harness →
+            </a>
           </section>
         </div>
       </div>

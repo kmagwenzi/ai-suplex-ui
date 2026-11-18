@@ -13,6 +13,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import { recordCall, lastRecord, type CallRecord } from "./telemetry";
+import { harnessEnv } from "../config";
 
 const HARNESS_DEFAULT = path.resolve(
   process.cwd(),
@@ -110,23 +111,31 @@ class McpClient {
   };
 
   private async start(): Promise<void> {
-    this.proc = spawn(process.execPath, [harnessPath()], {
+    const proc = spawn(process.execPath, [harnessPath()], {
       stdio: ["pipe", "pipe", "pipe"],
-      env: process.env,
+      // .console.json's vaultPath wins over the ambient env (see lib/config.ts)
+      env: harnessEnv(),
     });
-    this.proc.stdout!.setEncoding("utf8");
-    this.proc.stdout!.on("data", this.onData);
-    this.proc.stderr!.setEncoding("utf8");
-    this.proc.stderr!.on("data", (d: string) => {
+    this.proc = proc;
+    proc.stdout!.setEncoding("utf8");
+    proc.stdout!.on("data", this.onData);
+    proc.stderr!.setEncoding("utf8");
+    proc.stderr!.on("data", (d: string) => {
       const trimmed = d.trim();
       if (trimmed) this.lastStderr = trimmed;
     });
-    this.proc.on("error", (err: Error) => {
+    // A child that is no longer *the* child must never touch the live session:
+    // restart() kills the old process, whose 'exit' fires later.
+    proc.on("error", (err: Error) => {
+      if (this.proc !== proc) return;
       // a failed spawn may emit 'error' without 'exit' — clean up and name it.
       this.lastStderr = err.message;
       this.onExit(null, null);
     });
-    this.proc.on("exit", this.onExit);
+    proc.on("exit", (code: number | null, signal: string | null) => {
+      if (this.proc !== proc) return;
+      this.onExit(code, signal);
+    });
 
     const init = (await this.request("initialize", {
       protocolVersion: "2025-06-18",
@@ -143,6 +152,36 @@ class McpClient {
     this.capability = suplex;
     this.initialized = true;
     this.notify("notifications/initialized", {});
+  }
+
+  /**
+   * Drop the child and its state so the next call re-spawns with fresh env —
+   * used after the operator points the console at a different vault.
+   */
+  restart(): void {
+    const proc = this.proc;
+    this.proc = null;
+    this.initialized = false;
+    this.startPromise = null;
+    this.buffer = "";
+    this.capability = null;
+    for (const [, p] of this.pending) {
+      clearTimeout(p.timer);
+      p.reject(new Error("the harness was restarted"));
+    }
+    this.pending.clear();
+    if (proc) {
+      // detach first: its 'exit' arrives after we have already replaced it
+      try {
+        proc.removeAllListeners("exit");
+        proc.removeAllListeners("error");
+        proc.stdout?.removeAllListeners("data");
+        proc.stderr?.removeAllListeners("data");
+        proc.kill();
+      } catch {
+        /* already gone */
+      }
+    }
   }
 
   private ensureStarted(): Promise<void> {

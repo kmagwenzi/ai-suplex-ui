@@ -292,10 +292,12 @@ export function MemoryConsole({
   lessons,
   index,
   approvals,
+  memory = null,
 }: {
   lessons: string;
   index: string;
   approvals: Approvals | null;
+  memory?: { semantic: number; procedural: number; episodic: number; lessons: number; bBombs: number } | null;
 }) {
   const gates = (approvals?.gates ?? []) as { path: string }[];
   const items: GateItem[] = [
@@ -354,9 +356,25 @@ export function MemoryConsole({
           </h2>
           <dl className="mt-3 space-y-1.5 text-[13px] text-ink-2">
             <div className="flex justify-between gap-4">
-              <dt>staged lessons</dt>
-              <dd className="num">{l ? l.pool : "—"}</dd>
+              <dt>lessons</dt>
+              <dd className="num">{memory ? memory.lessons : l ? l.pool : "—"}</dd>
             </div>
+            {memory ? (
+              <>
+                <div className="flex justify-between gap-4">
+                  <dt>semantic</dt>
+                  <dd className="num">{memory.semantic}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt>procedural</dt>
+                  <dd className="num">{memory.procedural}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt>episodes</dt>
+                  <dd className="num">{memory.episodic}</dd>
+                </div>
+              </>
+            ) : null}
             <div className="flex justify-between gap-4">
               <dt>ready to promote</dt>
               <dd className="num">{l ? l.ready : "—"}</dd>

@@ -1,4 +1,9 @@
-import { readApprovals, readMemoryIndex, readMemoryLessons } from "@/lib/mcp/resources";
+import {
+  readApprovals,
+  readConsoleData,
+  readMemoryIndex,
+  readMemoryLessons,
+} from "@/lib/mcp/resources";
 import { MemoryConsole } from "@/components/memory-console";
 import { DebugOverlay } from "@/components/debug-overlay";
 
@@ -21,6 +26,9 @@ export default async function Memory({
   }
   // the approval inbox is secondary — a slow/failed approvals read degrades to null.
   const approvals = await readApprovals().catch(() => null);
+  // the stack counts come from the brief (cheap); approvals only enriches them.
+  const brief = await readConsoleData().then((d) => d.brief).catch(() => null);
+  const memory = brief?.activity?.memory ?? null;
 
   if (error) {
     return (
@@ -46,7 +54,7 @@ export default async function Memory({
         write you didn&apos;t intend.
       </p>
 
-      <MemoryConsole lessons={lessons} index={index} approvals={approvals} />
+      <MemoryConsole lessons={lessons} index={index} approvals={approvals} memory={memory} />
 
       {debug ? <DebugOverlay /> : null}
     </main>

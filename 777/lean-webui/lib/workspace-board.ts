@@ -18,11 +18,21 @@ export interface WorkspaceGroup {
 }
 
 /** Group instances by workspace type, in canonical lane order. */
+/** Newest first: a workspace you just opened belongs at the top of its section. */
+export function newestFirst(instances: Instance[]): Instance[] {
+  return instances.slice().sort((a, b) => {
+    const ao = a.opened ?? "";
+    const bo = b.opened ?? "";
+    if (ao === bo) return a.file.localeCompare(b.file);
+    return bo.localeCompare(ao);
+  });
+}
+
 export function groupByWorkspaceType(instances: Instance[]): WorkspaceGroup[] {
   return WORKSPACE_LANES.map((lane) => ({
     lane,
     label: WORKSPACE_LABEL[lane],
-    instances: instances.filter((i) => i.thread === lane),
+    instances: newestFirst(instances.filter((i) => i.thread === lane)),
   }));
 }
 
