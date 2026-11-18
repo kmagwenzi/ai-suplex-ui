@@ -44,6 +44,7 @@ export default async function Today({
     );
   }
 
+  const activity = data.brief.activity ?? null;
   const stages = deriveStages(data.signals);
   const current = stages.find((s) => s.state === "current") ?? stages[0];
   const brief = data.brief;
@@ -125,22 +126,23 @@ export default async function Today({
               memory pulse
             </div>
             <dl className="mt-2 space-y-1.5 text-[13px] text-ink-2">
-              <Row
-                k="staged lessons"
-                v={lessons ? String(lessons.pool) : "—"}
-              />
-              <Row
-                k="ready to promote"
-                v={lessons ? String(lessons.ready) : "—"}
-              />
-              <Row
-                k="borderline"
-                v={lessons ? String(lessons.borderline) : "—"}
-              />
-              <Row
-                k="B-Bombs"
-                v={approvals?.bBombs ? String(approvals.bBombs.count) : "—"}
-              />
+              {activity?.memory ? (
+                <>
+                  <Row k="lessons" v={String(activity.memory.lessons)} />
+                  <Row k="semantic" v={String(activity.memory.semantic)} />
+                  <Row k="procedural" v={String(activity.memory.procedural)} />
+                  <Row k="episodes" v={String(activity.memory.episodic)} />
+                  <Row k="B-Bombs" v={String(activity.memory.bBombs)} />
+                  {lessons ? <Row k="ready to promote" v={String(lessons.ready)} /> : null}
+                </>
+              ) : (
+                <>
+                  <Row k="staged lessons" v={lessons ? String(lessons.pool) : "—"} />
+                  <Row k="ready to promote" v={lessons ? String(lessons.ready) : "—"} />
+                  <Row k="borderline" v={lessons ? String(lessons.borderline) : "—"} />
+                  <Row k="B-Bombs" v={approvals?.bBombs ? String(approvals.bBombs.count) : "—"} />
+                </>
+              )}
             </dl>
           </section>
 
@@ -151,11 +153,19 @@ export default async function Today({
             >
               last shipped
             </div>
-            <div className="mt-2 text-[13px] text-ink-2">
-              <span className="text-muted">—</span> terminal outward acts (SENT ·
-              SUBMITTED · CLAIMED · PAID) are not on the{" "}
-              <code className="mono text-[12px]">mcp v1</code> read surface yet.
-            </div>
+            {activity?.lastShipped ? (
+              <div className="mt-2 text-[13px] text-ink-2">
+                <div className="text-ink">{activity.lastShipped.title}</div>
+                <div className="mono mt-1 break-words text-[11px] text-muted">
+                  {activity.lastShipped.date} · {activity.lastShipped.path}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 text-[13px] text-ink-2">
+                <span className="text-muted">—</span> no artifact found for this
+                period yet.
+              </div>
+            )}
           </section>
 
           <section aria-labelledby="ultra">

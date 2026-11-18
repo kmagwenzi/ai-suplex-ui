@@ -41,6 +41,16 @@ export interface Activity {
   latestEnd: string | null;
   artifacts: number;
   episodes: number;
+  /** The newest artifact in the period — what "last shipped" means. */
+  lastShipped?: { title: string; date: string; path: string } | null;
+  /** The memory stack, counted from the vault's own files. */
+  memory?: {
+    semantic: number;
+    procedural: number;
+    episodic: number;
+    lessons: number;
+    bBombs: number;
+  };
   /** The weekly proof: a review file for this cycle/week, and a fresh ritual receipt. */
   weekly?: {
     review: boolean;

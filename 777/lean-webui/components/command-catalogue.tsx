@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   SOURCE_LABEL,
+  bareCommandName,
   composeEnvelope,
   composeSections,
   fieldLine,
@@ -65,7 +66,12 @@ export function CommandCatalogue({
           <h2 id="dispatchable" className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
             Dispatchable
           </h2>
-          <div className="mono text-[12px] text-muted">{cards.length} · mcp v1 · fetched live</div>
+          <div className="mono text-[12px] text-muted">
+            {cards.length} · mcp v1 · fetched live ·{" "}
+            <a href="/guides/ai-suplex-commands" className="text-accent hover:text-accent-ink">
+              read the guide →
+            </a>
+          </div>
         </div>
         <div role="list" className="mt-3 space-y-3" aria-label="Dispatchable commands">
           {cards.map((c) => (
@@ -101,7 +107,10 @@ function patternName(file: string): string {
 
 function Card({ card, onCompose }: { card: PromptCard; onCompose: () => void }) {
   const contract = contractFor(card.name);
-  const inputs = card.arguments.map((a) => a.name).join(" · ") || "—";
+  // prompts/list returns "AI-Suplex: Session Start" for some, "Session Start" for
+  // others — normalise, or the label doubles the prefix.
+  const trigger = bareCommandName(card.command);
+  const mcpArgs = card.arguments.map((a) => a.name).join(" · ") || "—";
   return (
     <div role="listitem" className="rounded-lg border border-border bg-surface p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -115,14 +124,26 @@ function Card({ card, onCompose }: { card: PromptCard; onCompose: () => void }) 
       </div>
       <p className="mt-1.5 max-w-[68ch] text-[13px] text-ink-2">{card.description}</p>
       {contract ? (
-        <p className="mt-1.5 max-w-[68ch] text-[12px] text-muted">
-          <span className="mono text-[11px] uppercase tracking-[0.04em]">content</span>{" "}
-          {contract.fields.map((f) => f.label ?? f.key).join(" · ")}
-        </p>
+        <>
+          <p className="mt-1.5 max-w-[68ch] text-[12px] text-muted">
+            <span className="mono text-[11px] uppercase tracking-[0.04em]">trigger</span>{" "}
+            <span className="mono text-[12px] text-ink">AI-Suplex: {trigger}</span>
+          </p>
+          <p className="mt-1 max-w-[68ch] text-[12px] text-muted">
+            <span className="mono text-[11px] uppercase tracking-[0.04em]">content</span>{" "}
+            {contract.fields.map((f) => (f.required ? (f.label ?? f.key) + "*" : f.label ?? f.key)).join(" · ")}
+          </p>
+          {contract.additionalHint ? (
+            <p className="mt-1 max-w-[68ch] text-[12px] text-muted">
+              <span className="mono text-[11px] uppercase tracking-[0.04em]">additional</span>{" "}
+              {contract.additionalHint}
+            </p>
+          ) : null}
+        </>
       ) : null}
 
       <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 text-[12px] sm:grid-cols-3">
-        <Field k="inputs" v={inputs} mono />
+        <Field k="mcp args" v={mcpArgs} mono />
         <Field k="output" v={card.output} mono />
         <Field k="memory loop" v={card.memoryLoop ? MEMORY_LOOP_LABEL[card.memoryLoop] : "—"} />
       </dl>
@@ -146,7 +167,7 @@ function Card({ card, onCompose }: { card: PromptCard; onCompose: () => void }) 
           onClick={onCompose}
           className="rounded-md bg-accent px-3 py-1.5 text-[13px] font-medium text-on-accent hover:bg-accent-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          Compose
+          Compose {trigger}
         </button>
       </div>
     </div>
