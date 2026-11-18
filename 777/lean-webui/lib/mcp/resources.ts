@@ -19,6 +19,7 @@ export const RESOURCE_URIS = {
   memoryIndex: "suplex://memory/index",
   memoryLessons: "suplex://memory/lessons",
   approvals: "suplex://approvals",
+  commands: "suplex://commands",
 } as const;
 
 export interface ResourceContent {
@@ -198,4 +199,17 @@ export async function readTasklistBody(file: string): Promise<TasklistBody> {
     if (text) return { file, body: text, tried };
   }
   return { file, body: null, tried };
+}
+
+/** One \u2691 Command document, as the vault holds it. */
+export interface CommandDoc {
+  file: string;
+  trigger: string;
+  title: string;
+  body: string;
+}
+
+/** Every \u2691 Command doc — trigger + full markdown body (mcp v1.3.0). */
+export function readCommands(): Promise<CommandDoc[]> {
+  return readJson<CommandDoc[]>(RESOURCE_URIS.commands);
 }

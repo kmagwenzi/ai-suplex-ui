@@ -1,79 +1,85 @@
 import Link from "next/link";
 import { CONTRACTS } from "@/lib/command/contracts";
+import { readCommands, type CommandDoc } from "@/lib/mcp/resources";
 import { COPY_ONLY_COMMANDS, PROMPT_MEMORY_LOOP } from "@/lib/prompts";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
-/**
- * /guides/ai-suplex-commands — a viewer for the nine dispatchable commands.
- *
- * Every line comes from lib/command/contracts.ts — the same source the composer
- * renders — so this page cannot drift from what the console actually sends.
- */
-/** "session-start" -> "Session Start"; "b-bomb-promotion" -> "B-Bomb Promotion". */
-function triggerFromName(name: string): string {
+/** "Session End Report" -> "session-end-report" — how a doc finds its contract. */
+function slug(name: string): string {
   return name
-    .split("-")
-    .map((w) => (w.length === 1 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)))
-    .join(" ");
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-export default function CommandsGuide() {
+/**
+ * /guides/ai-suplex-commands — a viewer for the ⚡ Command documents.
+ *
+ * The upper half is structured (the CONTENT contract the composer renders); the
+ * lower half is the documents themselves, read from
+ * Prompt Patterns/AI-Suplex Commands/ over suplex://commands. Nothing is
+ * re-authored here: if the vault's doc changes, this page changes.
+ */
+export default async function CommandsGuide() {
+  let docs: CommandDoc[] = [];
+  let failed: string | null = null;
+  try {
+    docs = await readCommands();
+  } catch (e) {
+    failed = e instanceof Error ? e.message : String(e);
+  }
+
   const names = Object.keys(CONTRACTS);
+
   return (
     <main className="pt-8">
       <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-ink">
         AI-Suplex Commands
       </h1>
       <p className="mt-2 max-w-[70ch] text-[13px] text-ink-2">
-        The verbs. Each command is a trigger, its{" "}
-        <span className="mono text-[12px]">CONTENT</span>, and an optional{" "}
-        <span className="mono text-[12px]">ADDITIONAL</span>. Compose one at{" "}
-        <Link href="/commands" className="text-accent hover:text-accent-ink">
-          /commands
-        </Link>{" "}
-        — the console hands your words to an agent; nothing executes from here.
+        The verbs. The nine below are dispatchable — the console composes their{" "}
+        <span className="mono text-[12px]">CONTENT</span> from fields and hands the
+        words to an agent. Under them sit every{" "}
+        <span className="mono text-[12px]">⚡ Command</span> document in the vault,
+        read live from{" "}
+        <span className="mono text-[12px]">Prompt Patterns/AI-Suplex Commands/</span>.
       </p>
 
-      <nav
-        aria-label="Commands"
-        className="mt-6 rounded-lg border border-border bg-surface p-4"
-      >
+      <nav aria-label="Sections" className="mt-6 rounded-lg border border-border bg-surface p-4">
         <div className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
-          {names.length} dispatchable · {COPY_ONLY_COMMANDS.length} copy-only
+          {names.length} dispatchable · {docs.length || "—"} command documents
         </div>
         <ul className="mt-2 grid gap-x-6 gap-y-1 text-[13px] sm:grid-cols-2">
           {names.map((n) => (
             <li key={n}>
-              <a href={"#" + n} className="text-accent hover:text-accent-ink">
-                {triggerFromName(CONTRACTS[n].name)}
+              <a href={"#c-" + n} className="text-accent hover:text-accent-ink">
+                {CONTRACTS[n].name}
               </a>
             </li>
           ))}
         </ul>
       </nav>
 
+      <h2 className="mt-10 text-[17px] font-semibold tracking-[-0.01em] text-ink">
+        Dispatching — what each command takes
+      </h2>
+
       {names.map((name) => {
         const c = CONTRACTS[name];
         const loop = PROMPT_MEMORY_LOOP[name] ?? null;
-        const grouped = c.fields.some((f) => f.section);
         return (
-          <section key={name} id={name} className="mt-10 scroll-mt-6">
+          <section key={name} id={"c-" + name} className="mt-8 scroll-mt-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-ink">
-                {triggerFromName(c.name)}
-              </h2>
+              <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
+                {c.name}
+              </h3>
               <span className="mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                {grouped ? "grouped" : "flat"} · memory loop: {loop ?? "none"}
+                memory loop: {loop ?? "none"}
               </span>
             </div>
-
-            <pre className="mono mt-2 rounded-md border border-border bg-surface-2 px-3 py-2 text-[12px] text-ink">
-              {"AI-Suplex: " + triggerFromName(c.name)}
-            </pre>
-            <p className="mt-2 max-w-[70ch] text-[13px] text-ink-2">{c.purpose}</p>
-
-            <table className="mt-3 w-full border-collapse text-left text-[12px]">
+            <p className="mt-1 max-w-[70ch] text-[13px] text-ink-2">{c.purpose}</p>
+            <table className="mt-2 w-full border-collapse text-left text-[12px]">
               <thead>
                 <tr className="text-muted">
                   <th className="border-b border-border py-1 pr-3 font-normal">field</th>
@@ -87,9 +93,6 @@ export default function CommandsGuide() {
                   <tr key={f.key}>
                     <td className="border-b border-border py-1.5 pr-3 align-top">
                       <span className="mono text-[12px] text-ink">{f.key}</span>
-                      {f.label ? (
-                        <span className="mono text-[11px] text-muted"> · {f.label}</span>
-                      ) : null}
                       {f.section ? (
                         <div className="mono text-[10px] uppercase text-muted">{f.section}</div>
                       ) : null}
@@ -100,40 +103,68 @@ export default function CommandsGuide() {
                     <td className="mono border-b border-border py-1.5 pr-3 align-top text-[11px] text-muted">
                       {f.placeholder}
                     </td>
-                    <td className="border-b border-border py-1.5 align-top text-ink-2">
-                      {f.hint}
-                    </td>
+                    <td className="border-b border-border py-1.5 align-top text-ink-2">{f.hint}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-
-            <p className="mono mt-2 break-words text-[11px] text-muted">
+            <p className="mono mt-1.5 break-words text-[11px] text-muted">
               additional: {c.additionalHint} · pattern: {c.patternFile}
             </p>
-            <p className="mt-2 text-[12px]">
-              <Link
-                href={"/commands?command=" + name}
-                className="text-accent hover:text-accent-ink"
-              >
-                Compose {triggerFromName(c.name)} →
+            <p className="mt-1.5 text-[12px]">
+              <Link href={"/commands?command=" + name} className="text-accent hover:text-accent-ink">
+                Compose {c.name} →
               </Link>
             </p>
           </section>
         );
       })}
 
-      <section className="mt-10" aria-labelledby="copy-only-guide">
-        <h2
-          id="copy-only-guide"
-          className="text-[17px] font-semibold tracking-[-0.01em] text-ink"
-        >
-          Copy-only
-        </h2>
-        <p className="mt-1 max-w-[70ch] text-[12px] text-muted">
-          Triggers the vault holds but the console does not dispatch. Copy the
-          trigger, run it in your agent.
+      <h2 className="mt-12 text-[17px] font-semibold tracking-[-0.01em] text-ink">
+        The command documents
+      </h2>
+
+      {failed ? (
+        <p className="mt-2 max-w-[70ch] rounded-md border border-border bg-surface p-3 text-[13px] text-ink-2">
+          The documents could not be read: <span className="mono text-[12px]">{failed}</span>
         </p>
+      ) : (
+        <p className="mt-1 max-w-[70ch] text-[12px] text-muted">
+          Read live from the vault — {docs.length} documents. Open one to see exactly
+          what the agent is told.
+        </p>
+      )}
+
+      <div className="mt-4 space-y-2">
+        {docs.map((d) => {
+          const contract = CONTRACTS[slug(d.trigger)];
+          return (
+            <details key={d.file} className="rounded-lg border border-border bg-surface p-4">
+              <summary className="cursor-pointer">
+                <span className="text-[14px] font-medium text-ink">{d.trigger}</span>
+                {contract ? (
+                  <span className="mono ml-2 text-[10px] uppercase tracking-[0.04em] text-accent">
+                    dispatchable
+                  </span>
+                ) : (
+                  <span className="mono ml-2 text-[10px] uppercase tracking-[0.04em] text-muted">
+                    copy-only
+                  </span>
+                )}
+                <span className="mono mt-1 block text-[11px] text-muted">{d.file}</span>
+              </summary>
+              <pre className="mono mt-3 max-h-[28rem] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-surface-2 p-3 text-[11px] leading-relaxed text-ink-2">
+                {d.body}
+              </pre>
+            </details>
+          );
+        })}
+      </div>
+
+      <section className="mt-12" aria-labelledby="copy-only-guide">
+        <h2 id="copy-only-guide" className="text-[17px] font-semibold tracking-[-0.01em] text-ink">
+          Copy-only, listed by the console
+        </h2>
         <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-surface">
           {COPY_ONLY_COMMANDS.map((c) => (
             <li
