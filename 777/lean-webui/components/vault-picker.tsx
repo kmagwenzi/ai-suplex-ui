@@ -10,12 +10,22 @@ interface VaultState {
   week: number | null;
 }
 
+declare global {
+  interface Window {
+    /** The desktop shell's one capability (electron/preload.js). */
+    suplexDesktop?: { pickVault: () => Promise<string | null> };
+  }
+}
+
 /**
  * The one thing Setup must let you do: point the console at a vault.
  *
  * It writes the console's own .console.json (never the vault), the API validates
  * that the path carries period.md, and the harness is restarted so the next read
  * comes from the chosen vault — no app reboot.
+ *
+ * In the desktop app the path is not typed: the shell opens a native folder
+ * chooser (CHOOSE_FOLDER), and the same validation runs on whatever comes back.
  */
 export function VaultPicker() {
   const [state, setState] = useState<VaultState | null>(null);
@@ -23,8 +33,10 @@ export function VaultPicker() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [desktop, setDesktop] = useState(false);
 
   useEffect(() => {
+    setDesktop(Boolean(window.suplexDesktop));
     fetch("/api/setup/vault")
       .then((r) => r.json())
       .then((j: VaultState) => {
@@ -34,8 +46,8 @@ export function VaultPicker() {
       .catch(() => setError("could not read the current setting"));
   }, []);
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
+  async function useVault(candidate: string) {
+    if (!candidate.trim()) return;
     setBusy(true);
     setError(null);
     setSaved(null);
@@ -43,7 +55,7 @@ export function VaultPicker() {
       const r = await fetch("/api/setup/vault", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ path }),
+        body: JSON.stringify({ path: candidate }),
       });
       const j = await r.json();
       if (!r.ok) {
@@ -51,7 +63,7 @@ export function VaultPicker() {
         return;
       }
       setState(j as VaultState);
-      setSaved((j as VaultState).resolved ?? path);
+      setSaved((j as VaultState).resolved ?? candidate);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -59,8 +71,16 @@ export function VaultPicker() {
     }
   }
 
+  async function choose() {
+    const picked = await window.suplexDesktop?.pickVault();
+    if (!picked) return;
+    setPath(picked);
+    await useVault(picked);
+  }
+
   const field =
     "mt-1 w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-[13px] text-ink";
+  const onSample = Boolean(state?.env && /sample-vault\b/.test(state.env));
 
   return (
     <section
@@ -77,19 +97,45 @@ export function VaultPicker() {
         never written into the vault.
       </p>
 
-      <form onSubmit={save} className="mt-4 grid gap-3">
+      {onSample ? (
+        <p className="mt-3 rounded-md border border-border bg-surface-2 p-3 text-[12px] text-ink-2">
+          You are reading the <span className="font-medium text-ink">sample vault</span>{" "}
+          bundled with the app, so nothing here is your work. Choose your own vault to
+          start.
+        </p>
+      ) : null}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void useVault(path);
+        }}
+        className="mt-4 grid gap-3"
+      >
         <div>
           <label htmlFor="vault-path" className="mono text-[10px] uppercase tracking-[0.04em] text-muted">
             vault path
           </label>
-          <input
-            id="vault-path"
-            value={path}
-            onChange={(e) => setPath(e.target.value)}
-            placeholder="/home/you/Projects/AI-Suplex-777"
-            className={field}
-            spellCheck={false}
-          />
+          <div className="flex items-stretch gap-2">
+            <input
+              id="vault-path"
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+              placeholder="/home/you/Projects/AI-Suplex-777"
+              className={field + " flex-1"}
+              spellCheck={false}
+            />
+            {desktop ? (
+              <button
+                type="button"
+                onClick={choose}
+                disabled={busy}
+                className="mt-1 shrink-0 rounded-md border border-border bg-surface px-3 py-2 text-[13px] text-ink-2 hover:border-border-strong hover:text-ink disabled:opacity-60"
+              >
+                Choose folder…
+              </button>
+            ) : null}
+          </div>
         </div>
         <button
           type="submit"

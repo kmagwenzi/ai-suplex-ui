@@ -45,6 +45,9 @@ export default async function Setup() {
 
   const linked = brief !== null;
   const linkCmd = (target: string) => `node ${path.join(harnessDir, "link.js")} ${target}`;
+  // The desktop shell passes CONSOLE_CONFIG: there is no checkout to run
+  // link.js from, and the picker above is the answer.
+  const desktop = Boolean(process.env.CONSOLE_CONFIG);
 
   return (
     <main className="pt-8">
@@ -90,7 +93,8 @@ export default async function Setup() {
         )}
       </section>
 
-      {/* link */}
+      {/* link — a checkout-only route to the same setting */}
+      {desktop ? null : (
       <section className="mt-6 rounded-lg border border-border bg-surface p-6" aria-label="Link the vault">
         <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
           Link the vault
@@ -125,6 +129,7 @@ export default async function Setup() {
           once. Reload this page to confirm the link took effect.
         </p>
       </section>
+      )}
 
       {/* sample vault offer */}
       <section className="mt-6 rounded-lg border border-border bg-surface p-6" aria-label="Sample vault">
@@ -136,9 +141,19 @@ export default async function Setup() {
           session, artifacts, lessons, and a planted contradiction for the
           memory loop to surface.
         </p>
-        <pre className="mono mt-3 overflow-x-auto rounded-md border border-border bg-surface-2 p-3 text-[12px] text-ink">
+        {desktop ? (
+          <p className="mt-3 rounded-md border border-border bg-surface-2 p-3 text-[12px] text-ink-2">
+            The bundled sample opens on first launch — a complete week, with the
+            framework&apos;s <code className="mono text-[11px]">Tools/</code> beside it, so
+            the whole pipeline answers.{" "}
+            <span className="font-medium text-ink">Choose folder…</span> above moves you
+            to your own vault.
+          </p>
+        ) : (
+          <pre className="mono mt-3 overflow-x-auto rounded-md border border-border bg-surface-2 p-3 text-[12px] text-ink">
 {linkCmd(sampleVault)}
-        </pre>
+          </pre>
+        )}
         <div className="mt-3 text-[13px] text-ink-2">
           <span className="font-medium text-ink">Use the sample vault</span>{" "}
           <span className="text-muted">
@@ -149,7 +164,9 @@ export default async function Setup() {
           <br />
           <span className="font-medium text-ink">Use my vault</span>{" "}
           <span className="text-muted">
-            — point <code className="mono text-[12px]">link.js</code> at your own checkout; this is the full loop.
+            {desktop
+              ? "— pick the folder that holds period.md; this is the full loop."
+              : "— point link.js at your own checkout; this is the full loop."}
           </span>
           <br />
           <span className="font-medium text-ink">New</span>{" "}

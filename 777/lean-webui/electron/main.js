@@ -15,7 +15,7 @@
  * `spawnSync(process.execPath, [Tools/3lm.js])` keeps working unchanged.
  */
 
-const { app, BrowserWindow, Menu, dialog, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -53,12 +53,16 @@ function consoleRoot() {
     : path.join(process.resourcesPath, "app");
 }
 
-/** The MCP harness — bundled beside the app, or the sibling repo in development. */
+/**
+ * The MCP harness — assembled **inside** the app tree by scripts/bundle.mjs, or
+ * the sibling repo in development. (It was `resources/harness` once; that is
+ * beside the app, not in it, and the packaged app could not find it.)
+ */
 function harnessRoot() {
   if (process.env.HARNESS_PATH) return path.dirname(process.env.HARNESS_PATH);
   return IS_DEV
     ? path.resolve(__dirname, "..", "..", "..", "..", "ai-suplex-harness")
-    : path.join(process.resourcesPath, "harness");
+    : path.join(consoleRoot(), "harness");
 }
 
 /**
@@ -226,10 +230,12 @@ async function boot() {
 
   baseUrl = "http://127.0.0.1:" + port;
   await waitFor(baseUrl + "/api/health", 90000);
-  await openWindow();
+  // First run has no setting: open on Setup, where the picker is, instead of
+  // pretending the bundled sample vault is the user's own work.
+  await openWindow(fs.existsSync(configPath()) ? "/" : "/setup");
 }
 
-async function openWindow() {
+async function openWindow(route = "/") {
   window = new BrowserWindow({
     width: 1280,
     height: 880,
@@ -244,6 +250,7 @@ async function openWindow() {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: false,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
@@ -253,8 +260,25 @@ async function openWindow() {
     if (window === self) window = null;
   });
   hardenNavigation(self.webContents, baseUrl);
-  await self.loadURL(baseUrl);
+  await self.loadURL(baseUrl + route);
 }
+
+/**
+ * The one thing the page cannot do for itself: open a native folder chooser.
+ * Everything else stays in the web layer — the picker only names a directory,
+ * and the console's own API still validates it (period.md) and stores it.
+ */
+ipcMain.handle("suplex:pick-vault", async () => {
+  const parent = window && !window.isDestroyed() ? window : undefined;
+  const picked = await dialog.showOpenDialog(parent, {
+    title: "Choose your AI-Suplex vault",
+    buttonLabel: "Use this vault",
+    properties: ["openDirectory"],
+    message: "Pick the folder that holds period.md",
+  });
+  if (picked.canceled || picked.filePaths.length === 0) return null;
+  return picked.filePaths[0];
+});
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -286,7 +310,7 @@ if (!app.requestSingleInstanceLock()) {
   // macOS: the dock icon re-opens a window on the server that is already running.
   app.on("activate", () => {
     if (window || BrowserWindow.getAllWindows().length > 0) return;
-    if (server && baseUrl) openWindow().catch(() => app.quit());
+    if (server && baseUrl) openWindow("/").catch(() => app.quit());
   });
 
   app.on("window-all-closed", () => {

@@ -35,6 +35,8 @@ linux:
     - AppImage
     - zip
   executableName: ai-suplex-777-console
+  # window association: WM_CLASS → this .desktop entry, so the dock shows the
+  # app's own name and icon instead of the runtime's.
   category: Development
   synopsis: The AI-Suplex 777 Workflow Console
   artifactName: ai-suplex-777-console-${version}-${arch}.${ext}
