@@ -17,7 +17,7 @@
     "start": "next start",
     "test": "tsx --test \"lib/**/*.test.ts\"",
     "bench": "tsx scripts/bench.ts",
-    "bundle": "NEXT_OUTPUT=standalone NEXT_DIST_DIR=.next-standalone next build && node scripts/bundle.mjs",
+    "bundle": "node scripts/release-build.mjs",
     "desktop": "electron .",
     "dist": "npm run bundle && electron-builder",
     "dist:linux": "npm run bundle && electron-builder --linux",
