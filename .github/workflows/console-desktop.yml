@@ -90,7 +90,7 @@ jobs:
       - name: Checksums
         shell: bash
         working-directory: ai-suplex-ui/777/lean-webui
-        run: sha256sum release/*.exe release/*.dmg release/*.zip release/*.AppImage 2>/dev/null | tee release/SHA256SUMS.txt || true
+        run: sha256sum release/*.exe release/*.dmg release/*.zip 2>/dev/null | tee release/SHA256SUMS-${{ matrix.artifact }}.txt || true
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -114,7 +114,7 @@ jobs:
           # nullglob: an unmatched pattern expands to nothing instead of aborting
           # the step under `set -e` — every runner lacks one of the three formats.
           shopt -s nullglob
-          files=(release/*.exe release/*.dmg release/*.zip release/SHA256SUMS.txt)
+          files=(release/*.exe release/*.dmg release/*.zip release/SHA256SUMS-*.txt)
           if [ ${#files[@]} -eq 0 ]; then echo "nothing to attach"; exit 0; fi
           printf 'attaching: %s\n' "${files[@]}"
           gh release upload "${{ inputs.release_tag }}" "${files[@]}" \
