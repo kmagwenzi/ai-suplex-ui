@@ -58,13 +58,19 @@ jobs:
         working-directory: ai-suplex-ui/777/lean-webui
         run: npm ci
 
-      - name: Tests
-        working-directory: ai-suplex-ui/777/lean-webui
-        run: npm test
-
+      # Bundle first: it is what gives the tests a vault to talk to. The suite
+      # exercises the harness through the same tree that ships, so a failure here
+      # is a failure in the artefact, not only in the checkout.
       - name: Bundle (standalone console + harness + sample vault)
         working-directory: ai-suplex-ui/777/lean-webui
         run: npm run bundle
+
+      - name: Tests
+        working-directory: ai-suplex-ui/777/lean-webui
+        env:
+          HARNESS_PATH: ${{ github.workspace }}/ai-suplex-ui/777/lean-webui/dist-app/harness/server.js
+          SUPLEX_VAULT: ${{ github.workspace }}/ai-suplex-ui/777/lean-webui/dist-app/sample-vault
+        run: npm test
 
       - name: Package
         working-directory: ai-suplex-ui/777/lean-webui
