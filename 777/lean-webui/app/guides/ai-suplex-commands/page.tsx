@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CopyButton } from "@/components/copy-button";
 import { CONTRACTS } from "@/lib/command/contracts";
 import { readCommands, type CommandDoc } from "@/lib/mcp/resources";
 import { COPY_ONLY_COMMANDS, PROMPT_MEMORY_LOOP } from "@/lib/prompts";
@@ -131,7 +132,8 @@ export default async function CommandsGuide() {
       ) : (
         <p className="mt-1 max-w-[70ch] text-[12px] text-muted">
           Read live from the vault — {docs.length} documents. Open one to see exactly
-          what the agent is told.
+          what the agent is told; copy it verbatim if you would rather paste it
+          yourself.
         </p>
       )}
 
@@ -153,7 +155,18 @@ export default async function CommandsGuide() {
                 )}
                 <span className="mono mt-1 block text-[11px] text-muted">{d.file}</span>
               </summary>
-              <pre className="mono mt-3 max-h-[28rem] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-surface-2 p-3 text-[11px] leading-relaxed text-ink-2">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <span className="mono text-[11px] text-muted">
+                  the whole file, verbatim — frontmatter included
+                </span>
+                <CopyButton
+                  text={d.body}
+                  label="Copy document"
+                  what="The document"
+                  srLabel={"Copy the " + d.trigger + " document"}
+                />
+              </div>
+              <pre className="mono mt-2 max-h-[28rem] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-surface-2 p-3 text-[11px] leading-relaxed text-ink-2">
                 {d.body}
               </pre>
             </details>
@@ -165,14 +178,26 @@ export default async function CommandsGuide() {
         <h2 id="copy-only-guide" className="text-[17px] font-semibold tracking-[-0.01em] text-ink">
           Copy-only, listed by the console
         </h2>
+        <p className="mt-1 max-w-[70ch] text-[12px] text-muted">
+          These have no content contract, so the console cannot compose them —
+          copy the trigger and your agent loads the pattern from the vault path.
+        </p>
         <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-surface">
           {COPY_ONLY_COMMANDS.map((c) => (
             <li
               key={c.command}
-              className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-2.5"
+              className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2 px-4 py-2.5"
             >
               <span className="mono text-[12px] text-ink">{c.command}</span>
-              <span className="mono text-[11px] text-muted">{c.link}</span>
+              <span className="flex min-w-0 flex-wrap items-baseline justify-end gap-x-3 gap-y-2">
+                <span className="mono break-all text-[11px] text-muted">{c.link}</span>
+                <CopyButton
+                  text={c.trigger}
+                  label="Copy trigger"
+                  what="The trigger"
+                  srLabel={"Copy the trigger for " + c.command}
+                />
+              </span>
             </li>
           ))}
         </ul>

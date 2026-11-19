@@ -27,6 +27,7 @@ import {
   type PromptCard,
   type PrefillInput,
 } from "@/lib/prompts";
+import { CopyButton, writeClipboard } from "@/components/copy-button";
 import { workspaceLabel } from "@/lib/workspace";
 
 const MEMORY_LOOP_LABEL: Record<string, string> = {
@@ -183,14 +184,28 @@ function Field({ k, v, mono = false }: { k: string; v: string; mono?: boolean })
   );
 }
 
+/**
+ * A copy-only command has no contract, so the console cannot compose it — the
+ * only thing it can honestly offer is the trigger, which is exactly what the
+ * agent needs to load the pattern. The row shows the path; the button copies
+ * the words.
+ */
 function CopyOnlyRow({ c }: { c: CopyOnlyCommand }) {
   return (
-    <li className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-5 py-3">
+    <li className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2 px-5 py-3">
       <div className="min-w-0">
         <div className="mono text-[14px] font-medium text-ink">{c.trigger}</div>
         <div className="mono mt-0.5 truncate text-[11px] text-muted">{c.link}</div>
       </div>
-      <span className="mono shrink-0 text-[11px] uppercase tracking-[0.04em] text-attention">copy-only</span>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="mono text-[11px] uppercase tracking-[0.04em] text-attention">copy-only</span>
+        <CopyButton
+          text={c.trigger}
+          label="Copy"
+          what="The trigger"
+          srLabel={"Copy the trigger for " + c.command}
+        />
+      </div>
     </li>
   );
 }
@@ -327,7 +342,7 @@ function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: Prefi
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(composed);
+      await writeClipboard(composed);
       setCopied(true);
       setCopyFailed(false);
       setTimeout(() => setCopied(false), 1500);
