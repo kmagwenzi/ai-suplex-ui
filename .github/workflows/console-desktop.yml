@@ -61,7 +61,10 @@ jobs:
       # Bundle first: it is what gives the tests a vault to talk to. The suite
       # exercises the harness through the same tree that ships, so a failure here
       # is a failure in the artefact, not only in the checkout.
+      # bash on every runner: the script sets NEXT_OUTPUT=... inline, which cmd.exe
+      # (the default shell on Windows) cannot parse.
       - name: Bundle (standalone console + harness + sample vault)
+        shell: bash
         working-directory: ai-suplex-ui/777/lean-webui
         run: npm run bundle
 
