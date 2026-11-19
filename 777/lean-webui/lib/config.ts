@@ -13,7 +13,13 @@ export interface ConsoleConfig {
   vaultPath?: string;
 }
 
-const FILE = path.join(process.cwd(), ".console.json");
+/**
+ * Where the setting is stored. `process.cwd()` is right for a checkout, but a
+ * packaged app directory is read-only (AppImage is a mount, a .app is signed),
+ * so the desktop shell passes CONSOLE_CONFIG pointing into user data.
+ */
+const FILE =
+  process.env.CONSOLE_CONFIG?.trim() || path.join(process.cwd(), ".console.json");
 
 export function readConfig(): ConsoleConfig {
   try {

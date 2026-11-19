@@ -145,3 +145,36 @@ npm run bench             # §11 budgets, enforced
 grep -rn "node:sqlite" app lib components --include='*.ts' --include='*.tsx' || echo "GATE — no sqlite"
 grep -rE 'readFile|readdir|node:fs' app lib components --include='*.ts' --include='*.tsx' --exclude='*.test.ts' && echo "FAIL — file reads in the UI" || echo "GATE — MCP-only"
 ```
+
+## Desktop build (Electron)
+
+The console also ships as a desktop app. [`electron/main.js`](electron/main.js) is
+the whole shell: pick a free loopback port, start the server, hand it the
+bundled harness, open a window, kill the server when the window closes. Both
+children run on Electron's own Node (`ELECTRON_RUN_AS_NODE`), so the package
+ships one runtime instead of two — and the harness's own
+`spawnSync(process.execPath, [Tools/3lm.js])` keeps working unchanged.
+
+```bash
+npm run bundle      # standalone Next build + harness + sample vault → dist-app/
+npm run dist:linux  # AppImage + zip in release/
+npm run desktop     # run the shell against dist-app/, no packaging
+```
+
+Three things are deliberate:
+
+- **`dist-app/` is assembled, never hand-edited** (`scripts/bundle.mjs`). It holds
+  the standalone server, its traced `node_modules`, the MCP harness copied from
+  its repo, and the sample vault with the framework `Tools/` taken from the 777
+  edition — read at build time, never duplicated in this repo.
+- **The app tree enters the package through `afterPack`**, not `extraResources`:
+  electron-builder strips `node_modules` from a copied tree, and the Next server
+  cannot start without its traced runtime.
+- **Settings never live in the bundle.** A packaged app is read-only (an AppImage
+  is a mount, a `.app` is signed), so `CONSOLE_CONFIG` points at the user-data
+  directory. First run with no setting uses a writable copy of the sample vault,
+  so the window opens on something real; `/setup` moves it to your vault.
+
+`~/…/shell.log` (beside the config) records every boot line — ask for it before
+debugging a launch, because stdout is block-buffered when an app is started from
+a launcher.

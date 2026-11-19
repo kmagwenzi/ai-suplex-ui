@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "AI-Suplex 777 Workflow Console — a local-first window over mcp v1 (stdio)",
+  "main": "electron/main.js",
   "engines": {
     "node": ">=20"
   },
@@ -14,7 +15,13 @@
     "build": "next build",
     "start": "next start",
     "test": "tsx --test \"lib/**/*.test.ts\"",
-    "bench": "tsx scripts/bench.ts"
+    "bench": "tsx scripts/bench.ts",
+    "bundle": "NEXT_OUTPUT=standalone NEXT_DIST_DIR=.next-standalone next build && node scripts/bundle.mjs",
+    "desktop": "electron .",
+    "dist": "npm run bundle && electron-builder",
+    "dist:linux": "npm run bundle && electron-builder --linux",
+    "dist:win": "npm run bundle && electron-builder --win",
+    "dist:mac": "npm run bundle && electron-builder --mac"
   },
   "dependencies": {
     "next": "^15.1.6",
@@ -26,6 +33,8 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "autoprefixer": "^10.4.20",
+    "electron": "40.9.3",
+    "electron-builder": "^26.18.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",

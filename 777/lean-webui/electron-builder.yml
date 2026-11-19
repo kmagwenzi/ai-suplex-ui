@@ -1,0 +1,58 @@
+# electron-builder.yml — the desktop artefact.
+#
+# The shell is a wrapper; the app is dist-app/ (assembled by scripts/bundle.mjs)
+# and ships as an extra resource, outside the asar archive. Next reads its own
+# build through fs, and a mounted, signed bundle should not be parsed by an
+# archive driver on every page load.
+appId: co.zw.ai-suplex.console
+productName: AI-Suplex 777 Console
+copyright: AI-Suplex Labs
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - electron/**/*
+  - package.json
+  # The app is not in here: dist-app/ carries its own traced runtime, so the
+  # repo's dev dependencies (next, react, sharp) must not be packed as well.
+  - "!node_modules/**/*"
+
+# The console tree is copied by afterPack, not extraResources: electron-builder
+# strips node_modules from a copied tree, and the Next standalone server cannot
+# start without its traced runtime.
+afterPack: ./scripts/after-pack.cjs
+
+asar: true
+compression: normal
+# No native modules to rebuild — the app tree is copied, not compiled.
+npmRebuild: false
+removePackageScripts: true
+
+linux:
+  target:
+    - AppImage
+    - zip
+  executableName: ai-suplex-777-console
+  category: Development
+  synopsis: The AI-Suplex 777 Workflow Console
+  artifactName: ai-suplex-777-console-${version}-${arch}.${ext}
+
+win:
+  target:
+    - nsis
+    - zip
+  artifactName: ai-suplex-777-console-${version}-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+  artifactName: ai-suplex-777-console-${version}-${arch}.${ext}

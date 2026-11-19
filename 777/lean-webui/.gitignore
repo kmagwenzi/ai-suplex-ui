@@ -5,10 +5,15 @@ node_modules/
 .next/
 .next-verify/
 .next-standalone/
+dist-app/
+release/
 out/
 
 # production
-build/
+build/*
+# …except the desktop shell's icons, which electron-builder reads from build/
+!/build/icon.png
+!/build/icon.ico
 
 # env — local config, never committed
 .env
