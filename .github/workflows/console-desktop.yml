@@ -111,10 +111,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # bash aborts on an unmatched glob (a .dmg does not exist on Windows),
-          # so collect what this runner actually built.
-          files=$(ls release/*.exe release/*.dmg release/*.zip release/SHA256SUMS.txt 2>/dev/null | tr '\n' ' ')
-          if [ -z "$files" ]; then echo "nothing to attach"; exit 0; fi
-          echo "attaching: $files"
-          gh release upload "${{ inputs.release_tag }}" $files \
+          # nullglob: an unmatched pattern expands to nothing instead of aborting
+          # the step under `set -e` — every runner lacks one of the three formats.
+          shopt -s nullglob
+          files=(release/*.exe release/*.dmg release/*.zip release/SHA256SUMS.txt)
+          if [ ${#files[@]} -eq 0 ]; then echo "nothing to attach"; exit 0; fi
+          printf 'attaching: %s\n' "${files[@]}"
+          gh release upload "${{ inputs.release_tag }}" "${files[@]}" \
             --repo "${{ github.repository }}" --clobber
