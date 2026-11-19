@@ -1,0 +1,101 @@
+name: console desktop
+
+# Windows and macOS builds, made on GitHub's own runners.
+#
+# The desktop bundle needs three trees: this repo, the MCP harness, and the 777
+# edition's Tools (scripts/bundle.mjs reads them by path). All three are public,
+# so a runner can assemble exactly what the local build assembles — no wine, no
+# cross-compiling, no bandwidth from Harare.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Attach the builds to this release tag (blank = artifacts only)"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win nsis zip
+            artifact: console-windows
+          - os: macos-latest
+            target: --mac dmg zip
+            artifact: console-macos
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: The console
+        uses: actions/checkout@v4
+        with:
+          path: ai-suplex-ui
+
+      - name: The MCP harness
+        uses: actions/checkout@v4
+        with:
+          repository: kmagwenzi/ai-suplex-harness
+          path: ai-suplex-harness
+
+      - name: The 777 framework tools (bundle.mjs takes Tools/ from here)
+        uses: actions/checkout@v4
+        with:
+          repository: kmagwenzi/ai-suplex
+          path: 777-Edition/AI-Suplex-777
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ai-suplex-ui/777/lean-webui/package-lock.json
+
+      - name: Install
+        working-directory: ai-suplex-ui/777/lean-webui
+        run: npm ci
+
+      - name: Tests
+        working-directory: ai-suplex-ui/777/lean-webui
+        run: npm test
+
+      - name: Bundle (standalone console + harness + sample vault)
+        working-directory: ai-suplex-ui/777/lean-webui
+        run: npm run bundle
+
+      - name: Package
+        working-directory: ai-suplex-ui/777/lean-webui
+        run: npx electron-builder ${{ matrix.target }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Checksums
+        shell: bash
+        working-directory: ai-suplex-ui/777/lean-webui
+        run: sha256sum release/*.exe release/*.dmg release/*.zip release/*.AppImage 2>/dev/null | tee release/SHA256SUMS.txt || true
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ai-suplex-ui/777/lean-webui/release/*.exe
+            ai-suplex-ui/777/lean-webui/release/*.dmg
+            ai-suplex-ui/777/lean-webui/release/*.zip
+            ai-suplex-ui/777/lean-webui/release/SHA256SUMS.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Attach to the release
+        if: ${{ inputs.release_tag != '' }}
+        shell: bash
+        working-directory: ai-suplex-ui/777/lean-webui
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ inputs.release_tag }}" \
+            release/*.exe release/*.dmg release/*.zip release/SHA256SUMS.txt \
+            --repo "${{ github.repository }}" --clobber || true
