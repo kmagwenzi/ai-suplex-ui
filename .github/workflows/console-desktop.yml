@@ -15,6 +15,10 @@ on:
         required: false
         default: ""
 
+# Attaching files to a release writes content, and the default token is read-only.
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
