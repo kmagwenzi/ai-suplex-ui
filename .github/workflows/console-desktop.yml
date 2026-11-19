@@ -111,6 +111,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ inputs.release_tag }}" \
-            release/*.exe release/*.dmg release/*.zip release/SHA256SUMS.txt \
-            --repo "${{ github.repository }}" --clobber || true
+          # bash aborts on an unmatched glob (a .dmg does not exist on Windows),
+          # so collect what this runner actually built.
+          files=$(ls release/*.exe release/*.dmg release/*.zip release/SHA256SUMS.txt 2>/dev/null | tr '\n' ' ')
+          if [ -z "$files" ]; then echo "nothing to attach"; exit 0; fi
+          echo "attaching: $files"
+          gh release upload "${{ inputs.release_tag }}" $files \
+            --repo "${{ github.repository }}" --clobber
