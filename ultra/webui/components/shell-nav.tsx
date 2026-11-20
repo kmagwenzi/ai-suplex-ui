@@ -42,7 +42,8 @@ function NavRow({ surface, tier, active }: { surface: Surface; tier: Tier; activ
     </>
   );
 
-  const cls = `flex items-center gap-2.5 whitespace-nowrap border-b-2 px-4 py-2.5 md:border-b-0 md:border-l-2 ${rail}`;
+  // The active row is filled, not only ruled: across eight rows the eye needs a block.
+  const cls = `flex items-center gap-2.5 whitespace-nowrap border-b-2 px-4 py-2.5 transition-colors md:border-b-0 md:border-l-2 ${rail} ${active ? "bg-surface-2" : "hover:bg-surface-2/60"}`;
 
   if (available) {
     return (
