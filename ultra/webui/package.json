@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start -H 127.0.0.1 -p \"${PORT:-3100}\"",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/shell/compose.test.ts lib/shell/commands.test.ts lib/shell/command-intent.test.ts",
+    "test": "tsx --test lib/shell/compose.test.ts lib/shell/commands.test.ts lib/shell/command-intent.test.ts lib/shell/opportunity-room.test.ts",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
