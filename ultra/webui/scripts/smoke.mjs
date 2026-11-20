@@ -194,7 +194,7 @@ async function run() {
       allGated
         ? leaked
           ? "catalogue names leaked into the free shell"
-          : "7/7 routes gated · catalogue absent"
+          : ROUTES.length + "/" + ROUTES.length + " routes gated · catalogue absent"
         : detail,
     );
     console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`} (free-tier run)`);
@@ -219,7 +219,7 @@ async function run() {
         break;
       }
     }
-    check(15, "every failure visible", allNamed, allNamed ? "all 7 routes named" : detail);
+    check(15, "every failure visible", allNamed, allNamed ? "all " + ROUTES.length + " routes named" : detail);
 
     console.log(`\n${failures === 0 ? "ALL PASS" : `${failures} FAIL`} (broken-vault run)`);
     process.exit(failures === 0 ? 0 : 1);
@@ -236,7 +236,7 @@ async function run() {
       break;
     }
   }
-  check(3, "all 7 routes 200", allOk, allOk ? "7/7 200" : detail);
+  check(3, "all " + ROUTES.length + " routes 200", allOk, allOk ? ROUTES.length + "/" + ROUTES.length + " 200" : detail);
 
   // C4 · artifacts byte-identical
   let byteOk = true;
@@ -277,7 +277,7 @@ async function run() {
       break;
     }
   }
-  check(20, "⌘K trigger on all 7 routes", triggerOk, triggerOk ? "7/7 routes carry the trigger" : triggerDetail);
+  check(20, "⌘K trigger on all " + ROUTES.length + " routes", triggerOk, triggerOk ? ROUTES.length + "/" + ROUTES.length + " routes carry the trigger" : triggerDetail);
 
   // C21 · byte identity — the shipped composer, run for real
   const probeDir = mkdtempSync(path.join(tmpdir(), "ultra-compose-"));
