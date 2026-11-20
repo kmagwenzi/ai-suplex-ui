@@ -13,7 +13,7 @@ export interface Surface {
 }
 
 /**
- * The seven rows — the contract. Exactly seven, no separate "home" row: the
+ * The eight rows — the contract. Exactly eight, no separate "home" row: the
  * Knowledge Canvas is the hero at `/`.
  */
 export const SURFACES: Surface[] = [
@@ -43,6 +43,13 @@ export const SURFACES: Surface[] = [
     label: "Living Wiki",
     route: "/wiki",
     description: "The living wiki, embedded as-is with a source rail.",
+    minTier: "ultra",
+  },
+  {
+    key: "skills",
+    label: "Skills Evolution",
+    route: "/skills",
+    description: "Workflows ready to become skills, and the library they would join.",
     minTier: "ultra",
   },
   {

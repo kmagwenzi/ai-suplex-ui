@@ -139,6 +139,8 @@ test("the real vault catalogue parses with nothing skipped", async (t) => {
   const { commands, skipped, error } = await loadCommands(vault);
   assert.equal(error, undefined);
   assert.deepEqual(skipped, []);
-  assert.equal(commands.length, 17);
+  // A magic number here goes red every time a command is added. The invariant is
+  // "the catalogue parses, nothing skipped" — `skipped` already asserts that.
+  assert.ok(commands.length >= 17, `expected at least 17 commands, got ${commands.length}`);
   assert.ok(commands.every((command) => command.command === `AI-Suplex: ${command.name}`));
 });

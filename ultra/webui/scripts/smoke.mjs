@@ -26,7 +26,7 @@ const VAULT =
   process.env.AISUPLEX_VAULT ||
   path.join(homedir(), "Projects", "AI-Suplex-OS", "Deep-Ultra-OS", "AI-Suplex-777");
 
-const ROUTES = ["/", "/decisions", "/resonance", "/wiki", "/opportunity", "/deep-ultra", "/cockpit"];
+const ROUTES = ["/", "/decisions", "/resonance", "/wiki", "/skills", "/opportunity", "/deep-ultra", "/cockpit"];
 const ARTIFACTS = {
   "knowledge-canvas": "Projections/knowledge-canvas/index.html",
   "decision-canvas": "Projections/decision-canvas/index.html",
