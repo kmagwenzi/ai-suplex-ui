@@ -8,7 +8,7 @@ import type { RoomEdge, RoomGraph, RoomNode } from "./opportunity-room";
  * sentence here is a fact about edges that exist.
  */
 
-export type KnowledgeQuery = "connect" | "hubs" | "newest";
+export type KnowledgeQuery = "connect" | "hubs" | "newest" | "search";
 
 export interface KnowledgeEvidence {
   id: string;
@@ -116,11 +116,9 @@ function runConnect(graph: RoomGraph): KnowledgeResult {
     title: "777 → Ultra",
     answer:
       `${nodes[0].label} reaches ${nodes[nodes.length - 1].label} in ${hops} hop${hops === 1 ? "" : "s"}. The chain is recorded edge by recorded edge — nothing here was inferred.`,
-    evidence: nodes.map((n, i) => ({
-      id: n.id,
-      label: n.label,
-      why: i === 0 ? "start" : i === nodes.length - 1 ? "end" : `hop ${i}`,
-    })),
+    // The trace IS the evidence for a path — printing the same nodes again beside it
+    // is repetition dressed as proof.
+    evidence: [],
     visited: subgraph(graph, ids),
   };
 }
@@ -172,8 +170,56 @@ function runNewest(graph: RoomGraph): KnowledgeResult {
   };
 }
 
-export function runKnowledge(graph: RoomGraph, query: KnowledgeQuery): KnowledgeResult {
+/**
+ * Free text, answered deterministically: the nodes whose label mentions the term, plus
+ * one hop of context around them. No model, no ranking by anything but degree — the
+ * search is a filter over recorded titles, and it says so.
+ */
+function runSearch(graph: RoomGraph, term: string): KnowledgeResult {
+  const needle = term.trim().toLowerCase();
+  const empty: KnowledgeResult = {
+    query: "search",
+    title: term,
+    answer: needle
+      ? `Nothing in this graph mentions "${term.trim()}". That is a fact about the graph, not about the vault — the export is capped, so absence here is not absence there.`
+      : "Type a term to search the graph.",
+    evidence: [],
+    visited: { nodes: [], edges: [] },
+  };
+  if (!needle) return empty;
+
+  const matches = graph.nodes.filter((n) => n.label.toLowerCase().includes(needle));
+  if (matches.length === 0) return empty;
+
+  const adj = adjacency(graph);
+  const ids = new Set(matches.map((n) => n.id));
+  for (const m of matches) {
+    for (const nb of (adj.get(m.id) ?? []).slice(0, 6)) ids.add(nb.id);
+  }
+  const deg = degreeOf(graph);
+  const byId = index(graph);
+  const reached = Array.from(ids)
+    .map((id) => byId.get(id))
+    .filter((n): n is RoomNode => Boolean(n))
+    .sort((a, b) => (deg.get(b.id) ?? 0) - (deg.get(a.id) ?? 0) || a.id.localeCompare(b.id));
+
+  const top = reached[0];
+  return {
+    query: "search",
+    title: term,
+    answer: `${matches.length} node${matches.length === 1 ? "" : "s"} mention "${term.trim()}", and ${reached.length - matches.length} more sit one hop away. The most connected of them is "${top.label}" with ${deg.get(top.id) ?? 0} links.`,
+    evidence: reached.slice(0, 8).map((n) => ({
+      id: n.id,
+      label: n.label,
+      why: `${deg.get(n.id) ?? 0} links · ${n.type}`,
+    })),
+    visited: subgraph(graph, ids),
+  };
+}
+
+export function runKnowledge(graph: RoomGraph, query: KnowledgeQuery, term = ""): KnowledgeResult {
   if (query === "connect") return runConnect(graph);
   if (query === "hubs") return runHubs(graph);
+  if (query === "search") return runSearch(graph, term);
   return runNewest(graph);
 }
