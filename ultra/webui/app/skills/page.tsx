@@ -2,7 +2,7 @@ import { getTier } from "@/lib/shell/surfaces";
 import { configuredVaultPath, resolveVault } from "@/lib/shell/vault";
 import { Panel } from "@/components/panel";
 import { SurfaceHeader } from "@/components/surface-header";
-import { listDrafts, listSkills, scanCandidates } from "@/lib/shell/skills";
+import { listSkills, promoteQueue, scanCandidates } from "@/lib/shell/skills";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export default async function SkillsPage() {
   const [scan, library, drafts] = await Promise.all([
     scanCandidates(vault),
     listSkills(vault),
-    listDrafts(vault),
+    promoteQueue(vault),
   ]);
 
   const candidates = scan.ok ? scan.data.rows : [];
@@ -176,7 +176,7 @@ export default async function SkillsPage() {
             Drafts
           </h2>
           <span className="font-mono text-[12px] text-ink-2">
-            {drafts.ok ? `${drafts.data.length} waiting` : "unavailable"}
+            {drafts.ok ? `${drafts.data.count} waiting` : "unavailable"}
           </span>
         </header>
 
@@ -184,18 +184,38 @@ export default async function SkillsPage() {
           <Panel tone="error" title="The drafts could not be read">
             {drafts.error}
           </Panel>
-        ) : drafts.data.length === 0 ? (
+        ) : drafts.data.count === 0 ? (
           <Panel tone="empty" title="No drafts yet">
             A draft lands in <code className="font-mono text-[12px]">Skills/_drafts/</code> when a
-            candidate is generated. Nothing promotes itself.
+            candidate is generated. Nothing promotes itself — and nothing promotes without a
+            judged quality.
           </Panel>
         ) : (
           <ul className="px-5 pb-4 sm:px-8">
-            {drafts.data.map((d) => (
-              <li key={d.name} className="flex flex-wrap items-baseline gap-x-3 border-t border-border py-2 first:border-t-0">
-                <span className="text-[13px] text-ink">{d.name}</span>
-                <span className="ml-auto font-mono text-[12px] text-ink-2">q {d.quality.toFixed(2)}</span>
-                <span className="font-mono text-[11px] uppercase tracking-wide text-attention">{d.status}</span>
+            {drafts.data.rows.map((d) => (
+              <li key={d.id} className="border-t border-border py-2 first:border-t-0">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="text-[13px] text-ink">{d.name}</span>
+                  <span className="font-mono text-[11px] text-muted">
+                    {d.existing ? `→ v${d.target}` : `NEW v${d.target}`}
+                  </span>
+                  <span className="ml-auto font-mono text-[12px] text-ink-2">q {d.quality.toFixed(2)}</span>
+                  <span
+                    className={`font-mono text-[11px] uppercase tracking-wide ${
+                      d.blockers.length ? "text-attention" : "text-ink-2"
+                    }`}
+                  >
+                    {d.blockers.length ? `blocked ${d.blockers.length}` : "ready"}
+                  </span>
+                </div>
+                {d.blockers.map((b) => (
+                  <p key={b} className="mt-1 font-mono text-[11px] text-muted">
+                    · {b}
+                  </p>
+                ))}
+                <code className="mt-1 block font-mono text-[11px] text-ink-2">
+                  node Tools/skill-promote.js --draft {d.id}
+                </code>
               </li>
             ))}
           </ul>

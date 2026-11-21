@@ -126,3 +126,38 @@ export async function listDrafts(vault: string): Promise<Section<DraftRecord[]>>
     return { ok: true, data: [] };
   }
 }
+
+export interface PromoteRow {
+  id: string;
+  name: string;
+  role: string;
+  draft: string;
+  existing: string | null;
+  target: string;
+  quality: number;
+  steps: number;
+  blockers: string[];
+}
+
+export interface PromoteQueue {
+  skills: string;
+  drafts: string;
+  count: number;
+  rows: PromoteRow[];
+}
+
+/**
+ * The approval queue, read from the gate itself.
+ *
+ * The blockers are computed by `Tools/skill-promote.js` — the surface renders them, it never
+ * re-derives them. One checklist, one owner: the command that would refuse the write.
+ */
+export async function promoteQueue(vault: string): Promise<Section<PromoteQueue>> {
+  const res = await runTool(["Tools/skill-promote.js", "--json"], vault, 30_000);
+  if (!res.ok) return { ok: false, error: res.message };
+  try {
+    return { ok: true, data: JSON.parse(res.stdout) as PromoteQueue };
+  } catch {
+    return { ok: false, error: "the queue returned output that is not JSON" };
+  }
+}
