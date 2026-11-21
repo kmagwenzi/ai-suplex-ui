@@ -43,7 +43,8 @@ function NavRow({ surface, tier, active }: { surface: Surface; tier: Tier; activ
   );
 
   // The active row is filled, not only ruled: across eight rows the eye needs a block.
-  const cls = `flex items-center gap-2.5 whitespace-nowrap border-b-2 px-4 py-2.5 transition-colors md:border-b-0 md:border-l-2 ${rail} ${active ? "bg-surface-2" : "hover:bg-surface-2/60"}`;
+  // On mobile the strip snaps row by row, so the active surface never sits half off-screen.
+  const cls = `flex snap-start items-center gap-2.5 whitespace-nowrap border-b-2 px-4 py-2.5 transition-colors md:border-b-0 md:border-l-2 ${rail} ${active ? "bg-surface-2" : "hover:bg-surface-2/60"}`;
 
   if (available) {
     return (
@@ -98,7 +99,7 @@ export function ShellNav({
         {/* ── nav: horizontal strip on mobile, vertical rail on desktop ─── */}
         <nav
           aria-label="Surfaces"
-          className="flex shrink-0 overflow-x-auto border-b border-border md:w-56 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r md:py-2"
+          className="nav-strip flex shrink-0 snap-x snap-mandatory overflow-x-auto border-b border-border md:w-56 md:flex-col md:snap-none md:overflow-y-auto md:border-b-0 md:border-r md:py-2"
         >
           {SURFACES.map((s) => (
             <NavRow key={s.key} surface={s} tier={tier} active={active(s.route)} />

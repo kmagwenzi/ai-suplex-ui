@@ -194,3 +194,12 @@ samp,
   .stage .edge-draw { animation: none; }
 }
 
+/* ── mobile: the surface strip fades at its cut ─────────────────────────────
+   Eight surfaces cannot fit 390px, so the strip scrolls. The mask says "there
+   is more" without adding a second row of chrome. The desktop rail is untouched. */
+@media (max-width: 767px) {
+  .nav-strip {
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
+  }
+}
+

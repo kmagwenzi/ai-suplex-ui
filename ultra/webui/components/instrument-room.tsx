@@ -165,8 +165,51 @@ export function InstrumentRoom({ scene }: { scene: Scene }) {
   return (
     <div className="stage min-h-[560px]" data-scene={scene}>
       <div className="grid gap-8 px-6 py-8 sm:px-9 lg:grid-cols-[228px_minmax(0,1fr)] lg:gap-12 lg:py-10">
-        {/* ── control rail ─────────────────────────────────────────── */}
-        <aside className="flex flex-col">
+        {/* mobile: one wrapped row of chips — the rail costs 330px of scroll before
+            the canvas, which on a phone is the whole first screen */}
+        <div className="flex flex-wrap gap-2 lg:hidden">
+          {SCENES.map((s) => {
+            const on = s.id === scene;
+            return (
+              <Link
+                key={s.id}
+                href={s.href}
+                aria-current={on ? "page" : undefined}
+                className={
+                  "border px-2.5 py-1 text-[12px] transition-colors " +
+                  (on
+                    ? "border-[color:var(--stage-gold)] bg-[rgba(184,134,46,0.08)] text-[color:var(--stage-ink)]"
+                    : "border-[color:var(--hairline-strong)] text-[color:var(--stage-mut)]")
+                }
+              >
+                {s.label}
+              </Link>
+            );
+          })}
+          <span aria-hidden="true" className="self-center text-[color:var(--hairline-strong)]">·</span>
+          {questions.map((q) => {
+            const on = q.id === question;
+            return (
+              <button
+                key={q.id}
+                type="button"
+                onClick={() => { setQuestion(q.id); setTerm(""); }}
+                aria-pressed={on}
+                className={
+                  "border px-2.5 py-1 text-[12px] transition-colors " +
+                  (on
+                    ? "border-[color:var(--stage-gold-hi)] text-[color:var(--stage-gold-hi)]"
+                    : "border-[color:var(--hairline-strong)] text-[color:var(--stage-mut)]")
+                }
+              >
+                {q.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── control rail (desktop) ───────────────────────────────── */}
+        <aside className="hidden flex-col lg:flex">
           <div className="micro mb-2">Scene</div>
           {SCENES.map((s) => {
             const on = s.id === scene;

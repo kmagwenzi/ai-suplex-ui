@@ -110,7 +110,32 @@ export function SkillsStage() {
   return (
     <div className="stage min-h-[560px]" data-scene="skills">
       <div className="grid gap-8 px-6 py-8 sm:px-9 lg:grid-cols-[228px_minmax(0,1fr)] lg:gap-12 lg:py-10">
-        <aside className="flex flex-col">
+        {/* mobile: the three scopes as chips — the rail costs a screen of scroll */}
+        <div className="flex flex-wrap gap-2 lg:hidden">
+          {SCOPES.map((s) => {
+            const on = s.id === scope;
+            const n = s.id === "candidates" ? candidates.length : s.id === "queue" ? queueRows.length : skills.length;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => { setScope(s.id); setPicked(0); }}
+                aria-pressed={on}
+                className={
+                  "flex items-baseline gap-2 border px-2.5 py-1 text-[12px] transition-colors " +
+                  (on
+                    ? "border-[color:var(--stage-gold)] bg-[rgba(184,134,46,0.08)] text-[color:var(--stage-ink)]"
+                    : "border-[color:var(--hairline-strong)] text-[color:var(--stage-mut)]")
+                }
+              >
+                <span>{s.label}</span>
+                <span className="font-mono text-[10px]">{n}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <aside className="hidden flex-col lg:flex">
           <div className="micro mb-2">Scope</div>
           {SCOPES.map((s) => {
             const on = s.id === scope;
