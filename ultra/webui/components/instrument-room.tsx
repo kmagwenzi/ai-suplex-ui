@@ -89,7 +89,9 @@ function StageGraph({ nodes, edges }: { nodes: RoomNode[]; edges: RoomEdge[] }) 
         <g key={p.node.id}>
           <circle cx={p.x} cy={p.y} r={p.r} fill={labelled.has(p.node.id) ? "var(--stage-gold-hi)" : "rgba(241,245,249,0.5)"} />
           {labelled.has(p.node.id) ? (
-            <text x={p.x} y={p.y + p.r + 15} textAnchor="middle" fill="var(--stage-mut)" fontSize={10} className="font-mono">
+            // At 390px the SVG scales to ~0.45, so a 10-unit label renders at ~4.5px. Names
+            // are unreadable there; the evidence column already carries them.
+            <text x={p.x} y={p.y + p.r + 15} textAnchor="middle" fill="var(--stage-mut)" fontSize={10} className="hidden font-mono sm:block">
               {p.node.label.length > 26 ? p.node.label.slice(0, 25) + "…" : p.node.label}
             </text>
           ) : null}
