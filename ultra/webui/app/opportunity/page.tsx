@@ -3,7 +3,7 @@ import { configuredVaultPath, resolveVault } from "@/lib/shell/vault";
 import { Panel } from "@/components/panel";
 import { SurfaceHeader } from "@/components/surface-header";
 import { OpportunityView } from "@/components/opportunity-view";
-import { OpportunityRoom } from "@/components/opportunity-room";
+import { InstrumentRoom } from "@/components/instrument-room";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +37,9 @@ export default function OpportunityPage() {
         title="Opportunity Mapper"
         description="Open pipeline, overdue follow-ups, channel performance, utilisation and price bands."
       />
-      {/* The map first, the numbers second: a chip composes an answer from the graph,
-          and the table below proves the same story in rows. */}
-      <OpportunityRoom />
+      {/* The stage first, the numbers second: a question composes an answer from the
+          graph, and the tables below prove the same story in rows. */}
+      <InstrumentRoom scene="opportunity" />
       <div className="min-h-0 flex-1">
         <OpportunityView />
       </div>

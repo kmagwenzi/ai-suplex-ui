@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import { Space_Grotesk, IBM_Plex_Mono, IBM_Plex_Serif } from "next/font/google";
 import "./globals.css";
 import { ShellNav } from "@/components/shell-nav";
 import { getTier } from "@/lib/shell/surfaces";
@@ -29,6 +29,15 @@ const mono = IBM_Plex_Mono({
   display: "swap",
 });
 
+// The instrument voice. The shell speaks in Space Grotesk; the stage answers in serif —
+// the same split the showcase makes between chrome and evidence.
+const serif = IBM_Plex_Serif({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "AI-Suplex Ultra",
   description:
@@ -47,7 +56,7 @@ export default async function RootLayout({
   const vault = tier === "ultra" ? resolveVault() : null;
   const commands = vault ? (await loadCommands(vault)).commands : [];
   return (
-    <html lang="en" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${sans.variable} ${mono.variable} ${serif.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>

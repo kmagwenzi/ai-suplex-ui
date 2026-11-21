@@ -131,7 +131,7 @@ function runOverdue(graph: RoomGraph, now: number): RunResult {
     evidence: quiet.map((q) => ({
       id: q.node.id,
       label: q.node.label,
-      why: `${q.age}d old${q.node.focus ? " · " + q.node.focus : ""} · ${q.node.type}`,
+      why: `${q.age}d · ${q.node.type}`,
     })),
     visited: subgraph(graph, ids),
   };
