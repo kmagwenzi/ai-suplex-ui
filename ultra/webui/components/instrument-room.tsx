@@ -31,23 +31,7 @@ const SCENES: { id: Scene; label: string; href: string }[] = [
 const W = 760;
 const H = 360;
 
-/**
- * The whole scene, always drawn — the answer is a highlight, not a replacement.
- *
- * Drawing only the visited subgraph made an empty canvas whenever the answer was a path.
- * So: every node in the export sits on the stage, laid out in three rings by degree; the
- * ones the question matched burn gold and the edges between them light up. That is what
- * "the graph is the retrieval, visible as it resolves" looks like when it is true.
- */
-function StageGraph({
-  nodes,
-  edges,
-  matched,
-}: {
-  nodes: RoomNode[];
-  edges: RoomEdge[];
-  matched: Set<string>;
-}) {
+function StageGraph({ nodes, edges }: { nodes: RoomNode[]; edges: RoomEdge[] }) {
   const degree = useMemo(() => {
     const d = new Map<string, number>();
     for (const e of edges) {
@@ -62,36 +46,24 @@ function StageGraph({
     [nodes, degree],
   );
 
-  // One hub at the centre, then three rings outward. An empty middle made the scene
-  // read as a starfield with a hole in it; the graph's most connected node anchors it.
-  const hub = ranked.slice(0, 1);
-  const ring1 = ranked.slice(1, 8);
-  const ring2 = ranked.slice(8, 26);
-  const ring3 = ranked.slice(26);
+  const inner = ranked.slice(0, Math.min(5, ranked.length));
+  const outer = ranked.slice(inner.length);
   const cx = W / 2;
   const cy = H / 2;
   const pos = new Map<string, { x: number; y: number; r: number; node: RoomNode }>();
 
-  const place = (list: RoomNode[], rx: number, ry: number, base: number, offset: number) => {
-    list.forEach((n, i) => {
-      const a = (2 * Math.PI * i) / Math.max(1, list.length) - Math.PI / 2 + offset;
-      const hot = matched.has(n.id);
-      pos.set(n.id, {
-        x: cx + rx * Math.cos(a),
-        y: cy + ry * Math.sin(a),
-        r: hot ? 5.6 + Math.min(4, degree.get(n.id) ?? 0) : base,
-        node: n,
-      });
-    });
-  };
+  inner.forEach((n, i) => {
+    const a = (2 * Math.PI * i) / Math.max(1, inner.length) - Math.PI / 2;
+    pos.set(n.id, { x: cx + 128 * Math.cos(a), y: cy + 82 * Math.sin(a), r: 6 + Math.min(5, degree.get(n.id) ?? 0), node: n });
+  });
+  outer.forEach((n, i) => {
+    const a = (2 * Math.PI * i) / Math.max(1, outer.length) - Math.PI / 2 + 0.32;
+    pos.set(n.id, { x: cx + 300 * Math.cos(a), y: cy + 138 * Math.sin(a), r: 3.4, node: n });
+  });
 
-  place(hub, 0, 0, 7, 0);
-  place(ring1, 96, 62, 4.6, 0);
-  place(ring2, 200, 116, 3.2, 0.32);
-  place(ring3, 296, 156, 2.6, 0.68);
-
-  // Only matched nodes carry labels: a name on every dot is a word cloud, not a map.
-  const labelled = new Set(ranked.filter((n) => matched.has(n.id)).slice(0, 6).map((n) => n.id));
+  // Only the inner ring carries labels: eight labels on a 760-unit stage collide
+  // into one another and cost more than they explain.
+  const labelled = new Set(inner.map((n) => n.id));
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="The retrieved subgraph" className="h-auto w-full">
@@ -106,21 +78,16 @@ function StageGraph({
             y1={a.y}
             x2={b.x}
             y2={b.y}
-            stroke={matched.has(e.from) && matched.has(e.to) ? "rgba(212,169,79,0.55)" : "rgba(148,163,184,0.15)"}
-            strokeWidth={matched.has(e.from) && matched.has(e.to) ? 1.1 : 0.6}
+            stroke="rgba(148,163,184,0.24)"
+            strokeWidth={0.9}
             className="edge-draw"
-            style={{ animationDelay: `${Math.min(500, i * 10)}ms` }}
+            style={{ animationDelay: `${Math.min(500, i * 14)}ms` }}
           />
         );
       })}
       {Array.from(pos.values()).map((p) => (
         <g key={p.node.id}>
-          <circle
-            cx={p.x}
-            cy={p.y}
-            r={p.r}
-            fill={matched.has(p.node.id) ? "var(--stage-gold-hi)" : "rgba(241,245,249,0.42)"}
-          />
+          <circle cx={p.x} cy={p.y} r={p.r} fill={labelled.has(p.node.id) ? "var(--stage-gold-hi)" : "rgba(241,245,249,0.5)"} />
           {labelled.has(p.node.id) ? (
             <text x={p.x} y={p.y + p.r + 15} textAnchor="middle" fill="var(--stage-mut)" fontSize={10} className="font-mono">
               {p.node.label.length > 26 ? p.node.label.slice(0, 25) + "…" : p.node.label}
@@ -136,7 +103,7 @@ function StageGraph({
 /** A chain is a trace, not a scatter: two dots on a canvas say nothing about the hops. */
 function ChainTrace({ nodes, edges }: { nodes: RoomNode[]; edges: RoomEdge[] }) {
   return (
-    <ol>
+    <ol className="grid gap-x-10 sm:grid-cols-2">
       {nodes.map((n, i) => {
         const next = nodes[i + 1];
         const rel = next
@@ -294,11 +261,13 @@ export function InstrumentRoom({ scene }: { scene: Scene }) {
           ) : result ? (
             <>
               <div className="reveal py-6">
-                <StageGraph
-                  nodes={state.graph.nodes}
-                  edges={state.graph.edges}
-                  matched={new Set(result.visited.nodes.map((n) => n.id))}
-                />
+                {result.query === "connect" ? (
+                  <ChainTrace nodes={result.visited.nodes} edges={result.visited.edges} />
+                ) : result.visited.nodes.length > 2 ? (
+                  <StageGraph nodes={result.visited.nodes} edges={result.visited.edges} />
+                ) : (
+                  <div className="py-14 text-center"><span className="micro">Nothing to light for this question</span></div>
+                )}
               </div>
 
               <div className="reveal-late grid gap-8 border-t border-[color:var(--hairline)] pt-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12">
@@ -309,11 +278,9 @@ export function InstrumentRoom({ scene }: { scene: Scene }) {
 
                 <div className="min-w-0">
                   <div className="micro mb-2">
-                    {result.query === "connect" ? "Path" : result.query === "search" ? "Read" : "Evidence"}
+                    {result.query === "search" ? "Read" : "Evidence"}
                   </div>
-                  {result.query === "connect" ? (
-                    <ChainTrace nodes={result.visited.nodes} edges={result.visited.edges} />
-                  ) : result.evidence.length > 0 ? (
+                  {result.evidence.length > 0 ? (
                     <dl>
                       {result.evidence.slice(0, 6).map((e) => (
                         <div key={e.id} className="flex gap-3 border-t border-[color:var(--hairline)] py-1.5 first:border-t-0">
