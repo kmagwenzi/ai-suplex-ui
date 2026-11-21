@@ -49,7 +49,8 @@ test("overdue names the oldest waiting thread first", () => {
   assert.ok(result.evidence.length > 0, "finds the quiet threads");
   const first = result.evidence[0];
   assert.match(first.label, /follow-up|Application/i);
-  assert.match(first.why, /^\d+d old/);
+  // The stage prints the age and the type only — one line per row, never three.
+  assert.match(first.why, /^\d+d · \w+$/);
   assert.match(result.answer, /oldest/);
 });
 
