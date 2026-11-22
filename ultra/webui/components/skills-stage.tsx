@@ -254,9 +254,19 @@ export function SkillsStage() {
                       </ul>
                     ) : (
                       <p className="mt-2 text-[12px] leading-5 text-[color:var(--stage-gold-hi)]">
-                        Clear to promote — run <span className="font-mono">Tools/skill-promote.js</span>.
+                        Clear to promote — the only thing left is your quality judgement.
                       </p>
                     )}
+                    <code className="mt-3 block break-all border border-[color:var(--hairline-strong)] px-2 py-1.5 font-mono text-[10.5px] leading-4 text-[color:var(--stage-cream)]">
+                      node Tools/skill-promote.js --draft {pickedQueue.id} --approve --quality &lt;0–1&gt;
+                    </code>
+                    <code className="mt-1.5 block break-all border border-[color:var(--hairline)] px-2 py-1.5 font-mono text-[10.5px] leading-4 text-[color:var(--stage-mut)]">
+                      node Tools/skill-search.js --draft {pickedQueue.id}
+                    </code>
+                    <p className="mt-2 text-[11px] leading-4 text-[color:var(--stage-mut)]">
+                      The second command checks the open ecosystem (skills.sh). A hit is a recommendation,
+                      never an approval — the local dedupe still holds.
+                    </p>
                   </div>
                 ) : null}
 
