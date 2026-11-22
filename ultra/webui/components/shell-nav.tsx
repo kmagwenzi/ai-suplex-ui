@@ -6,7 +6,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { CommandBar } from "@/components/command-bar";
 import type { CommandDef } from "@/lib/shell/commands";
 import {
-  SURFACES,
+  MVP_SURFACES,
+  CONCEPT_SURFACES,
   gateReason,
   isSurfaceAvailable,
   type Surface,
@@ -26,9 +27,11 @@ function NavRow({ surface, tier, active }: { surface: Surface; tier: Tier; activ
   const available = isSurfaceAvailable(surface, tier);
   const reason = gateReason(surface, tier);
 
+  const concept = surface.status === "concept";
+
   // Gold 2px rail: bottom edge on the mobile strip, left edge on the desktop rail.
   const rail = active ? "border-gold" : "border-transparent";
-  const text = active ? "text-ink" : available ? "text-ink-2 hover:text-ink" : "text-muted";
+  const text = active ? "text-ink" : concept ? "text-muted hover:text-ink-2" : available ? "text-ink-2 hover:text-ink" : "text-muted";
 
   const inner = (
     <>
@@ -38,6 +41,9 @@ function NavRow({ surface, tier, active }: { surface: Surface; tier: Tier; activ
           <LockGlyph />
           {surface.locked ? "locked" : "ultra"}
         </span>
+      )}
+      {available && concept && (
+        <span className="ml-auto shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">soon</span>
       )}
     </>
   );
@@ -101,7 +107,17 @@ export function ShellNav({
           aria-label="Surfaces"
           className="nav-strip flex shrink-0 snap-x snap-mandatory overflow-x-auto border-b border-border md:w-56 md:flex-col md:snap-none md:overflow-y-auto md:border-b-0 md:border-r md:py-2"
         >
-          {SURFACES.map((s) => (
+          {MVP_SURFACES.map((s) => (
+            <NavRow key={s.key} surface={s} tier={tier} active={active(s.route)} />
+          ))}
+
+          {/* Designed and held. They keep a route so the work is not lost, but they are
+              not part of the five — the tag says so instead of the nav implying it. */}
+          <div className="hidden px-4 pb-1 pt-4 font-mono text-[9.5px] uppercase tracking-[0.16em] text-muted/70 md:block">
+            Concepts · post-launch
+          </div>
+          <span className="hidden w-full border-t border-border md:block" aria-hidden="true" />
+          {CONCEPT_SURFACES.map((s) => (
             <NavRow key={s.key} surface={s} tier={tier} active={active(s.route)} />
           ))}
         </nav>

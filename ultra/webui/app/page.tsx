@@ -19,15 +19,24 @@ export default function KnowledgePage() {
             the whole map rather than one question — a single deterministic file, offline, no network
             at render time.
           </p>
-          <a
-            href="/canvas"
-            className="inline-flex shrink-0 items-center gap-2 border border-ink px-4 py-2 text-[13px] text-ink transition-colors hover:bg-ink hover:text-bg"
-          >
-            Open the full canvas
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </a>
+          <div className="flex shrink-0 flex-wrap items-center gap-3">
+            {/* Resonance is an enhancer on this graph, not a row of its own. */}
+            <a
+              href="/resonance"
+              className="font-mono text-[11px] text-muted underline decoration-border underline-offset-4 transition-colors hover:text-ink"
+            >
+              resonance overlay →
+            </a>
+            <a
+              href="/canvas"
+              className="inline-flex items-center gap-2 border border-ink px-4 py-2 text-[13px] text-ink transition-colors hover:bg-ink hover:text-bg"
+            >
+              Open the full canvas
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
+          </div>
         </div>
       </div>
     </div>
