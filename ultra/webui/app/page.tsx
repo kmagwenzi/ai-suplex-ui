@@ -1,43 +1,54 @@
+import { getTier } from "@/lib/shell/surfaces";
+import { configuredVaultPath, resolveVault } from "@/lib/shell/vault";
+import { Panel } from "@/components/panel";
+import { SurfaceHeader } from "@/components/surface-header";
 import { InstrumentRoom } from "@/components/instrument-room";
+import { OpportunityView } from "@/components/opportunity-view";
+import { ResonanceEnhancer } from "@/components/resonance-enhancer";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Knowledge Graph — a scene of the instrument.
+ * The front door is the money surface.
  *
- * The room answers a question on the stage; the 1,783-node canvas stays one link
- * away, because a map you cannot read is not evidence.
+ * Opportunity Mapper first — it is the only surface that maps to the month's metric.
+ * The stage answers a question, the tables prove it, and resonance reads the same
+ * record from the side rather than competing for a row in the nav.
  */
-export default function KnowledgePage() {
+export default function HomePage() {
+  const tier = getTier();
+  if (tier === "free") {
+    return (
+      <div className="p-6">
+        <Panel tone="gate" title="Opportunity Mapper — Ultra tier required">
+          Set <code className="font-mono text-[13px]">AISUPLEX_TIER=ultra</code> to view this surface.
+        </Panel>
+      </div>
+    );
+  }
+
+  const vault = resolveVault();
+  if (!vault) {
+    return (
+      <div className="p-6">
+        <Panel tone="error" title="Vault unavailable">
+          <code className="font-mono text-[13px]">AISUPLEX_VAULT</code> is unset or unreadable
+          (resolved: <code className="font-mono text-[13px]">{configuredVaultPath()}</code>).
+        </Panel>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-full flex-col">
-      <InstrumentRoom scene="knowledge" />
-      <div className="px-6 py-7 sm:px-9">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="max-w-[62ch] text-[13px] leading-6 text-ink-2">
-            Every answer above is composed from the same graph the canvas draws. Open the canvas for
-            the whole map rather than one question — a single deterministic file, offline, no network
-            at render time.
-          </p>
-          <div className="flex shrink-0 flex-wrap items-center gap-3">
-            {/* Resonance is an enhancer on this graph, not a row of its own. */}
-            <a
-              href="/resonance"
-              className="font-mono text-[11px] text-muted underline decoration-border underline-offset-4 transition-colors hover:text-ink"
-            >
-              resonance overlay →
-            </a>
-            <a
-              href="/canvas"
-              className="inline-flex items-center gap-2 border border-ink px-4 py-2 text-[13px] text-ink transition-colors hover:bg-ink hover:text-bg"
-            >
-              Open the full canvas
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </a>
-          </div>
-        </div>
+      <SurfaceHeader
+        title="Opportunity Mapper"
+        description="Open pipeline, overdue follow-ups, channel performance, utilisation and price bands."
+      />
+      <InstrumentRoom scene="opportunity" />
+      <ResonanceEnhancer context="opportunity" />
+      <div className="min-h-0 flex-1">
+        <OpportunityView />
       </div>
     </div>
   );

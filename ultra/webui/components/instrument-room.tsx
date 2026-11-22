@@ -23,8 +23,8 @@ type State =
   | { status: "ok"; graph: RoomGraph };
 
 const SCENES: { id: Scene; label: string; href: string }[] = [
-  { id: "knowledge", label: "Knowledge Graph", href: "/" },
-  { id: "opportunity", label: "Opportunity Mapper", href: "/opportunity" },
+  { id: "opportunity", label: "Opportunity Mapper", href: "/" },
+  { id: "knowledge", label: "Knowledge Graph", href: "/knowledge" },
 ];
 
 // A narrow viewBox keeps the mono labels readable once the SVG scales into the stage.

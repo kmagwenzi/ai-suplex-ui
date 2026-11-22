@@ -33,7 +33,7 @@ export const SURFACES: Surface[] = [
   {
     key: "opportunity",
     label: "Opportunity Mapper",
-    route: "/opportunity",
+    route: "/",
     description: "Pipeline, follow-ups, channels, utilisation and price bands.",
     minTier: "ultra",
     status: "mvp",
@@ -41,7 +41,7 @@ export const SURFACES: Surface[] = [
   {
     key: "knowledge-canvas",
     label: "Knowledge Canvas",
-    route: "/",
+    route: "/knowledge",
     description: "The vault's knowledge graph, projected as a self-contained canvas.",
     minTier: "ultra",
     status: "mvp",
