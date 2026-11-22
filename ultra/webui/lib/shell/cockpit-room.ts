@@ -51,6 +51,8 @@ export interface OperatorView {
   stale: { label: string; days: number; fix: string }[];
   guard: boolean;
   open: number;
+  /** Close packets awaiting the daily-tasks reconcile. */
+  inbox: number;
   lastShipped: { title: string; date: string } | null;
   memory: { semantic: number; procedural: number; episodic: number; lessons: number } | null;
   weekly: { review: boolean; ritual: boolean; lastRitual: string | null };
@@ -153,16 +155,20 @@ function gateText(gate: unknown): string {
   }
 }
 
-function operatorAnswer(open: number, stale: { label: string; days: number }[]): string {
+function operatorAnswer(open: number, stale: { label: string; days: number }[], inbox: number): string {
   const opened = `${count(open, "instance")} open`;
+  const packets =
+    inbox > 0
+      ? ` ${count(inbox, "close packet")} still await the reconcile.`
+      : "";
   if (stale.length === 0) {
-    return `${opened}, and none has passed the ${THRESHOLD_DAYS}-day line. Nothing in the operator state needs you today.`;
+    return `${opened}, and none has passed the ${THRESHOLD_DAYS}-day line.${packets || " Nothing in the operator state needs you today."}`;
   }
   if (stale.length === 1) {
-    return `${opened}, and one has passed the ${THRESHOLD_DAYS}-day line: ${stale[0].label} at ${stale[0].days} days. Close it, or it becomes a truth nobody is maintaining.`;
+    return `${opened}, and one has passed the ${THRESHOLD_DAYS}-day line: ${stale[0].label} at ${stale[0].days} days. Close it, or it becomes a truth nobody is maintaining.${packets}`;
   }
   const oldest = Math.max(...stale.map((s) => s.days));
-  return `${opened}, and ${stale.length} have passed the ${THRESHOLD_DAYS}-day line — the oldest at ${oldest} days.`;
+  return `${opened}, and ${stale.length} have passed the ${THRESHOLD_DAYS}-day line — the oldest at ${oldest} days.${packets}`;
 }
 
 function approvalsAnswer(pending: boolean, gates: number, ready: number): string {
@@ -193,6 +199,7 @@ function buildOperator(status: Section<OperatorStatus>): OperatorView {
       stale: [],
       guard: false,
       open: 0,
+      inbox: 0,
       lastShipped: null,
       memory: null,
       weekly: { review: false, ritual: false, lastRitual: null },
@@ -228,12 +235,15 @@ function buildOperator(status: Section<OperatorStatus>): OperatorView {
   return {
     ok: true,
     error: null,
-    answer: operatorAnswer(s.open, stale),
-    headline: `${s.open} open · ${stale.length ? `${stale.length} stale` : "guard clean"}`,
+    answer: operatorAnswer(s.open, stale, s.inbox?.count ?? 0),
+    headline: `${s.open} open · ${stale.length ? `${stale.length} stale` : "guard clean"}${
+      s.inbox?.count ? ` · ${s.inbox.count} packet${s.inbox.count === 1 ? "" : "s"}` : ""
+    }`,
     marks,
     stale,
     guard: s.ok,
     open: s.open,
+    inbox: s.inbox?.count ?? 0,
     lastShipped,
     memory: activity?.memory
       ? {

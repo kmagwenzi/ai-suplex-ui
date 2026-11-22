@@ -84,6 +84,8 @@ export interface OperatorStatus {
   stale: StaleRow[];
   /** Present in current asmc.js; optional so an older tool still degrades honestly. */
   activity?: Activity;
+  /** Close packets still owed a reconcile — a count from Inbox/, never a verdict. */
+  inbox?: { count: number; oldest: string | null };
 }
 
 export interface Approvals {
