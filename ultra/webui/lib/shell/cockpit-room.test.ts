@@ -413,3 +413,51 @@ test("the vault sections reach the stage untouched", () => {
   assert.equal(view.vault.log.ok, false);
   assert.equal(view.identity.vault, null);
 });
+
+test("the board proposes a command per stale lane and never a write", () => {
+  const view = buildCockpitView(
+    data({
+      board: {
+        ok: true,
+        value: {
+          now: "2026-11-22",
+          stale_days: 3,
+          lanes: {
+            active: 3,
+            stale: 1,
+            rows: [
+              { ref: "23", slug: "execution-console", thread: "project-tasks", mission: "parked", opened: "2026-11-19", touched: "2026-11-19", idle_days: 3, status: "open", stale: true },
+              { ref: "27", slug: "ultra-refinement", thread: "project-tasks", mission: "live", opened: "2026-11-22", touched: "2026-11-22", idle_days: 0, status: "open", stale: false },
+            ],
+          },
+          tasklists: {
+            active: 3,
+            closeable: 1,
+            rows: [
+              { file: "a.md", date: "2026-11-01", touched: "2026-11-01", status: "active", done: 1, open: 1, verdict: "closeable", why: "the day passed" },
+              { file: "b.md", date: "2026-10-01", touched: "2026-10-01", status: "active", done: 0, open: 3, verdict: "review", why: "multi-day lane — a human decides" },
+            ],
+          },
+        },
+      },
+    }),
+  );
+
+  assert.equal(view.board.ok, true);
+  assert.equal(view.board.stale.length, 1, "only the idle lane is proposed");
+  assert.match(view.board.stale[0].packet, /--packet 23 --reason "<why it is finished>"/);
+  assert.match(view.board.stale[0].archive, /--archive 23$/);
+  assert.equal(view.board.closeable.length, 1);
+  assert.equal(view.board.review.length, 1);
+  assert.equal(view.board.staleDays, 3);
+  assert.equal(view.board.resource, "Memory/asmc/board-2026-11-22.md");
+  assert.equal(view.board.commandTasklists, "node Tools/close-stale.js --archive-tasklists");
+  assert.equal(view.board.commandReview, "node Tools/close-stale.js --archive-tasklists --include-review");
+});
+
+test("a failed board read is stated, never invented", () => {
+  const view = buildCockpitView(data({ board: { ok: false, error: "ENOENT" } }));
+  assert.equal(view.board.ok, false);
+  assert.equal(view.board.stale.length, 0);
+  assert.match(view.board.error ?? "", /ENOENT/);
+});

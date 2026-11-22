@@ -51,6 +51,37 @@ export interface StaleRow {
   fix: string;
 }
 
+/** One row of `close-stale --board --json`: a fact, and the tool's own verdict. */
+export interface BoardLane {
+  ref: string;
+  slug: string;
+  thread: string;
+  mission: string;
+  opened: string;
+  touched: string;
+  idle_days: number;
+  status: string;
+  stale: boolean;
+}
+
+export interface BoardTasklist {
+  file: string;
+  date: string;
+  touched: string;
+  status: string;
+  done: number;
+  open: number;
+  verdict: "closeable" | "review" | "keep";
+  why: string;
+}
+
+export interface BoardRead {
+  now: string;
+  stale_days?: number;
+  lanes: { active: number; stale: number; rows: BoardLane[] };
+  tasklists: { active: number; closeable: number; rows: BoardTasklist[] };
+}
+
 /** The tool's own read of the day: sessions, the last ship, the memory pulse. */
 export interface Activity {
   date?: string;
@@ -140,6 +171,8 @@ export type Section<T> =
 export interface CockpitData {
   vault: string | null;
   status: Section<OperatorStatus>;
+  /** The board: the same rules the sweep runs, read-only. */
+  board?: Section<BoardRead>;
   approvals: Section<Approvals>;
   rhythm: Section<RhythmRead>;
   vaultContext: Section<string>;
@@ -192,6 +225,31 @@ function loadFileService(vault: string): Promise<FileService> {
 function parseJson<T>(stdout: string): T {
   // The tools print JSON on stdout; a banner would be a tool bug, not something to guess past.
   return JSON.parse(stdout) as T;
+}
+
+/**
+ * The board — the sweep's own rules, read live. The cockpit uses them to PROPOSE;
+ * it never archives. `close-stale --board --json` is the single owner of the verdicts.
+ */
+async function loadBoard(vault: string): Promise<Section<BoardRead>> {
+  const result = await runTool(["Tools/close-stale.js", "--board", "--json"], vault, 30000);
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.message,
+      command: "node Tools/close-stale.js --board --json",
+      exitCode: result.code,
+    };
+  }
+  try {
+    return { ok: true, value: parseJson<BoardRead>(result.stdout) };
+  } catch {
+    return {
+      ok: false,
+      error: "the board tool returned output that is not JSON",
+      command: "node Tools/close-stale.js --board --json",
+    };
+  }
 }
 
 async function loadStatus(vault: string): Promise<Section<OperatorStatus>> {
@@ -297,6 +355,7 @@ export async function loadCockpit(): Promise<CockpitData> {
     return {
       vault: null,
       status: { ok: false, error },
+      board: { ok: false, error },
       approvals: { ok: false, error },
       rhythm: { ok: false, error },
       vaultContext: { ok: false, error },
@@ -314,6 +373,7 @@ export async function loadCockpit(): Promise<CockpitData> {
     return {
       vault,
       status,
+      board: { ok: false, error },
       approvals: { ok: false, error },
       rhythm: { ok: false, error },
       vaultContext: { ok: false, error },
@@ -331,10 +391,12 @@ export async function loadCockpit(): Promise<CockpitData> {
 
   const today = status.ok ? status.value.date : new Date().toISOString().slice(0, 10);
   const rhythm = await loadRhythm(vault, today);
+  const board = await loadBoard(vault);
 
   return {
     vault,
     status,
+    board,
     approvals: section(
       () => service.approvals(),
       "node Tools/approvals.js --json",

@@ -6,6 +6,8 @@ import type {
   RitualPlan,
   Section,
   TasklistRow,
+  BoardRead,
+  BoardTasklist,
 } from "./cockpit";
 import { daysBetween, type CronEntry, type HermesJob, type RitualReceipt } from "./rhythm";
 
@@ -100,6 +102,31 @@ export interface TasklistsView {
   empty: number;
 }
 
+export interface BoardLaneProposal {
+  ref: string;
+  slug: string;
+  idle: number;
+  mission: string;
+  /** The exact command pair — a reason is human, so it is a placeholder. */
+  packet: string;
+  archive: string;
+}
+
+export interface BoardView {
+  ok: boolean;
+  error: string | null;
+  lanes: number;
+  staleDays: number;
+  stale: BoardLaneProposal[];
+  closeable: BoardTasklist[];
+  review: BoardTasklist[];
+  inbox: number;
+  /** The dated proposal the Tue/Sat step writes. */
+  resource: string;
+  commandTasklists: string;
+  commandReview: string;
+}
+
 export interface CockpitView {
   identity: { date: string; cycle: number; week: number; open: number; stale: number; vault: string | null };
   scopes: ScopeRow[];
@@ -107,6 +134,7 @@ export interface CockpitView {
   rhythm: RhythmView;
   approvals: ApprovalsView;
   tasklists: TasklistsView;
+  board: BoardView;
   vault: { context: Section<string>; log: Section<string> };
 }
 
@@ -419,12 +447,60 @@ function buildTasklists(status: Section<OperatorStatus>): TasklistsView {
   };
 }
 
+/**
+ * The board view — the sweep's facts, and the command per item. Functions cannot cross
+ * the server/client boundary, so every command string is precomputed here.
+ */
+function buildBoard(section: Section<BoardRead> | undefined, inbox: number): BoardView {
+  const empty: BoardView = {
+    ok: false,
+    error: section && !section.ok ? section.error : "the board was not read",
+    lanes: 0,
+    staleDays: 3,
+    stale: [],
+    closeable: [],
+    review: [],
+    inbox,
+    resource: "",
+    commandTasklists: "node Tools/close-stale.js --archive-tasklists",
+    commandReview: "node Tools/close-stale.js --archive-tasklists --include-review",
+  };
+  if (!section || !section.ok) return empty;
+
+  const b = section.value;
+  const stale = b.lanes.rows
+    .filter((r) => r.stale)
+    .map((r) => ({
+      ref: r.ref,
+      slug: r.slug,
+      idle: r.idle_days,
+      mission: r.mission,
+      packet: `node Tools/close-stale.js --packet ${r.ref} --reason "<why it is finished>"`,
+      archive: `node Tools/close-stale.js --archive ${r.ref}`,
+    }));
+
+  return {
+    ok: true,
+    error: null,
+    lanes: b.lanes.active,
+    staleDays: b.stale_days ?? 3,
+    stale,
+    closeable: b.tasklists.rows.filter((r) => r.verdict === "closeable"),
+    review: b.tasklists.rows.filter((r) => r.verdict === "review"),
+    inbox,
+    resource: `Memory/asmc/board-${b.now}.md`,
+    commandTasklists: "node Tools/close-stale.js --archive-tasklists",
+    commandReview: "node Tools/close-stale.js --archive-tasklists --include-review",
+  };
+}
+
 export function buildCockpitView(data: CockpitData): CockpitView {
   const today = data.status.ok ? data.status.value.date : new Date().toISOString().slice(0, 10);
   const operator = buildOperator(data.status);
   const rhythm = buildRhythm(data.rhythm, today);
   const approvals = buildApprovals(data.approvals);
   const tasklists = buildTasklists(data.status);
+  const board = buildBoard(data.board, operator.inbox);
   const waiting = approvals.gates.length + approvals.ready;
 
   return {
@@ -473,6 +549,7 @@ export function buildCockpitView(data: CockpitData): CockpitView {
     rhythm,
     approvals,
     tasklists,
+    board,
     vault: { context: data.vaultContext, log: data.vaultLog },
   };
 }

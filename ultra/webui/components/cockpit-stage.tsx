@@ -72,7 +72,7 @@ function Stat({ label, value, note }: { label: string; value: string | number; n
   );
 }
 
-function OperatorBody({ view }: { view: CockpitView["operator"] }) {
+function OperatorBody({ view, board }: { view: CockpitView["operator"]; board: CockpitView["board"] }) {
   return (
     <div>
       {view.stale.length > 0 ? (
@@ -141,6 +141,47 @@ function OperatorBody({ view }: { view: CockpitView["operator"] }) {
           note={view.weekly.lastRitual ? "ritual " + view.weekly.lastRitual : "no ritual logged"}
         />
       </div>
+
+      {board.ok && (board.stale.length || board.closeable.length || board.review.length || board.inbox) ? (
+        <div className="mt-7 border border-[color:var(--hairline-strong)] px-4 py-3">
+          <div className="micro">Board — proposals, never writes</div>
+          <p className="mt-1.5 max-w-[66ch] text-[12.5px] leading-5 text-[color:var(--stage-mut)]">
+            {board.lanes} lane{board.lanes === 1 ? "" : "s"} open ·{" "}
+            {board.stale.length} past {board.staleDays} days · {board.closeable.length} tasklist
+            {board.closeable.length === 1 ? "" : "s"} closeable · {board.inbox} packet
+            {board.inbox === 1 ? "" : "s"} awaiting reconcile. The Tuesday/Saturday step writes the
+            same proposals to <span className="font-mono text-[color:var(--stage-cream)]">{board.resource}</span>.
+          </p>
+
+          {board.stale.map((lane) => (
+            <div key={lane.ref} className="mt-3 border-t border-[color:var(--hairline)] pt-2">
+              <div className="flex flex-wrap items-baseline gap-x-3">
+                <span className="font-mono text-[11px] text-[color:var(--stage-gold-hi)]">{lane.ref}</span>
+                <span className="text-[12.5px] text-[color:var(--stage-ink)]">{lane.slug}</span>
+                <span className="font-mono text-[11px] text-[color:var(--stage-mut)]">{lane.idle}d idle</span>
+              </div>
+              <code className="mt-1 block break-all border border-[color:var(--hairline)] px-2 py-1 font-mono text-[10.5px] leading-4 text-[color:var(--stage-cream)]">
+                {lane.packet}
+              </code>
+              <code className="mt-1 block break-all border border-[color:var(--hairline)] px-2 py-1 font-mono text-[10.5px] leading-4 text-[color:var(--stage-mut)]">
+                {lane.archive}
+              </code>
+            </div>
+          ))}
+
+          {board.closeable.length > 0 ? (
+            <code className="mt-3 block break-all border border-[color:var(--hairline)] px-2 py-1 font-mono text-[10.5px] leading-4 text-[color:var(--stage-cream)]">
+              {board.commandTasklists}
+            </code>
+          ) : null}
+
+          {board.review.length > 0 ? (
+            <code className="mt-1 block break-all border border-[color:var(--hairline)] px-2 py-1 font-mono text-[10.5px] leading-4 text-[color:var(--stage-mut)]">
+              {board.commandReview}
+            </code>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -584,7 +625,7 @@ export function CockpitStage({ view, initialScope = "operator" }: { view: Cockpi
           <div key={scope} className="reveal mt-6">
             {scope === "operator" ? (
               view.operator.ok ? (
-                <OperatorBody view={view.operator} />
+                <OperatorBody view={view.operator} board={view.board} />
               ) : (
                 <Panel tone="error" title="Operator state unavailable">
                   {view.operator.error}
