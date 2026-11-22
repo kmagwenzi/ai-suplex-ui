@@ -66,7 +66,7 @@ export const SURFACES: Surface[] = [
     key: "cockpit",
     label: "AS MC cockpit",
     route: "/cockpit",
-    description: "The local ops surface — approvals, tasklists, vault log.",
+    description: "The local ops surface — operator state, the ritual clock, approvals, tasklists, vault log.",
     minTier: "ultra",
     status: "mvp",
   },

@@ -54,8 +54,11 @@ export default async function CockpitPage({
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <p className="max-w-[62ch] text-[13px] leading-6 text-ink-2">
             Every read above comes from the vault itself — operator state from{" "}
-            <code className="font-mono text-[12px]">Tools/asmc.js status</code>, the inbox from the
-            approvals tool, the two memory files verbatim. Nothing here writes, approves or archives.
+            <code className="font-mono text-[12px]">Tools/asmc.js status</code>, the rhythm from{" "}
+            <code className="font-mono text-[12px]">crontab -l</code>,{" "}
+            <code className="font-mono text-[12px]">Tools/ritual.js</code> and the vault's own Hermes job
+            list, the inbox from the approvals tool, the two memory files verbatim. Nothing here writes,
+            approves or archives.
           </p>
           <p className="max-w-[42ch] truncate font-mono text-[11px] text-muted" title={data.vault}>
             {data.vault}

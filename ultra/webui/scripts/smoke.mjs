@@ -104,7 +104,7 @@ const seamWired = sh(`grep -l "file-service" lib/shell/cockpit.ts 2>/dev/null ||
 const cockpitUsesSeam = sh(`grep -c "loadCockpit" app/cockpit/page.tsx 2>/dev/null || true`).trim() !== "0";
 // Real imports only: prose that *mentions* a database is not a database.
 const dbHits = sh(
-  `grep -rEn "PrismaClient|new Pool\\(|createServer\\(|from ['\"]pg['\"]|postgres://" app/cockpit lib/shell/cockpit.ts lib/shell/cockpit-room.ts components/cockpit-stage.tsx 2>/dev/null || true`,
+  `grep -rEn "PrismaClient|new Pool\\(|createServer\\(|from ['\"]pg['\"]|postgres://" app/cockpit lib/shell/cockpit.ts lib/shell/cockpit-room.ts lib/shell/rhythm.ts components/cockpit-stage.tsx 2>/dev/null || true`,
 ).trim();
 check(
   10,
@@ -114,7 +114,7 @@ check(
 );
 
 // C11 · cockpit ≠ intelligence: the ops route renders no artifact and no surface frame
-const cockpitArtifact = sh(`grep -rEn "readArtifact|ARTIFACT_ALLOWLIST|artifactMeta|ArtifactFrame|iframe" app/cockpit components/cockpit-stage.tsx 2>/dev/null || true`).trim();
+const cockpitArtifact = sh(`grep -rEn "readArtifact|ARTIFACT_ALLOWLIST|artifactMeta|ArtifactFrame|iframe" app/cockpit components/cockpit-stage.tsx lib/shell/rhythm.ts 2>/dev/null || true`).trim();
 check(11, "cockpit reads no artifact", cockpitArtifact === "", cockpitArtifact || "clean");
 
 // C12 · enrich lane untouched

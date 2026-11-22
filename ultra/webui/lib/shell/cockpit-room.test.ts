@@ -1,7 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildCockpitView, formatDay, parseScope, SPAN_DAYS, THRESHOLD_DAYS } from "./cockpit-room";
-import type { Approvals, CockpitData, OperatorStatus, ParticipantInstance, TasklistRow } from "./cockpit";
+import type {
+  Approvals,
+  CockpitData,
+  OperatorStatus,
+  ParticipantInstance,
+  RhythmRead,
+  TasklistRow,
+} from "./cockpit";
 
 /**
  * The cockpit's view model is the operator's answer, so it is asserted rather than
@@ -63,11 +70,64 @@ function status(over: Partial<OperatorStatus> = {}): OperatorStatus {
   };
 }
 
+const RHYTHM: RhythmRead = {
+  cron: {
+    installed: true,
+    entries: [
+      { schedule: "30 21 * * *", when: "daily 21:30", label: "rituals.sh daily", kind: "ritual" },
+      {
+        schedule: "0 6 * * 6",
+        when: "Sat 06:00",
+        label: "rituals.sh saturday",
+        kind: "ritual",
+        redirect: "/vault/Memory/ritual-log.md",
+      },
+    ],
+    note: null,
+  },
+  hermes: {
+    jobs: [
+      {
+        schedule: "0 7 * * *",
+        when: "daily 07:00",
+        name: "operator-brief",
+        deliver: "discord",
+        script: "operator-brief.sh",
+      },
+      {
+        schedule: "0 6 * * 6",
+        when: "Sat 06:00",
+        name: "bbomb-ranking",
+        deliver: "local",
+        script: "bbomb-hunter.sh",
+      },
+    ],
+    note: null,
+  },
+  plan: {
+    name: "tuesday",
+    title: "Tuesday — The Reset",
+    date: "2026-11-24",
+    daysAway: 2,
+    steps: [
+      { id: "T1", label: "Archive", owner: "builder", status: "plan", tier: "free" },
+      { id: "T7", label: "Tasklist", owner: "hustler", status: "handoff", tier: "free" },
+      { id: "T6", label: "Freeze", owner: "builder", status: "skipped", tier: "free" },
+    ],
+    mine: 1,
+    scripted: 2,
+    skipped: 1,
+  },
+  planError: null,
+  receipt: { date: "2026-10-21", name: "tuesday", ran: ["T1", "T2"], handed: ["T7"], verdict: "ok · commit pending" },
+};
+
 function data(over: Partial<CockpitData> = {}): CockpitData {
   return {
     vault: "/vault",
     status: { ok: true, value: status() },
     approvals: { ok: true, value: approvals() },
+    rhythm: { ok: true, value: RHYTHM },
     vaultContext: { ok: true, value: "# context" },
     vaultLog: { ok: true, value: "# log" },
     ...over,
@@ -258,7 +318,7 @@ test("a failed tool blanks its own section and nothing else", () => {
 
   assert.deepEqual(
     view.scopes.map((s) => s.state),
-    ["unavailable", "clear", "unavailable", "read-only"],
+    ["unavailable", "in 2d", "clear", "unavailable", "read-only"],
     "a failed section says unavailable in the rail — it never reads as clear",
   );
   assert.equal(view.scopes[0].count, null, "no number is better than a zero nobody computed");
@@ -266,11 +326,11 @@ test("a failed tool blanks its own section and nothing else", () => {
   const inboxFailed = buildCockpitView(
     data({ approvals: { ok: false, error: "approvals.js exited 1" } }),
   );
-  assert.equal(inboxFailed.scopes[1].state, "unavailable");
-  assert.equal(inboxFailed.scopes[1].count, null);
+  assert.equal(inboxFailed.scopes[2].state, "unavailable");
+  assert.equal(inboxFailed.scopes[2].count, null);
 });
 
-test("the rail names the four sections and carries their counts", () => {
+test("the rail names the five sections and carries their counts", () => {
   const view = buildCockpitView(
     data({
       approvals: {
@@ -282,14 +342,63 @@ test("the rail names the four sections and carries their counts", () => {
 
   assert.deepEqual(view.scopes.map((s) => s.label), [
     "Operator state",
+    "Rhythm",
     "Approvals inbox",
     "Active tasklists",
     "Vault",
   ]);
-  assert.deepEqual(view.scopes.map((s) => s.count), [2, 3, 0, null]);
+  assert.deepEqual(view.scopes.map((s) => s.count), [2, 3, 3, 0, null]);
   assert.equal(view.scopes[0].state, "fresh");
-  assert.equal(view.scopes[1].state, "pending");
-  assert.equal(view.scopes[3].state, "read-only");
+  assert.equal(view.scopes[1].state, "in 2d", "the ritual is two days out");
+  assert.equal(view.scopes[2].state, "pending");
+  assert.equal(view.scopes[4].state, "read-only");
+});
+
+test("the rhythm answer names the ritual, the crontab and the receipt's age", () => {
+  const view = buildCockpitView(data());
+  assert.equal(
+    view.rhythm.answer,
+    "The Tuesday ritual is in 2 days — 3 steps, 1 of them yours. The crontab carries 2 ritual entries. The last receipt is 21 Oct 2026, 32 days old.",
+  );
+  assert.equal(view.rhythm.headline, "2 cron · 2 agent · receipt 21 Oct 2026");
+  assert.equal(view.rhythm.receiptAge, 32);
+  assert.equal(view.rhythm.redirects, true, "a cron line still redirects into the receipt");
+});
+
+test("no crontab is a fact, not an error", () => {
+  const view = buildCockpitView(
+    data({
+      rhythm: {
+        ok: true,
+        value: {
+          ...RHYTHM,
+          cron: { installed: false, entries: [], note: "no crontab is installed for this user" },
+        },
+      },
+    }),
+  );
+  assert.match(view.rhythm.answer, /Nothing in the crontab runs a ritual/);
+  assert.equal(view.rhythm.headline, "no cron · 2 agent · receipt 21 Oct 2026");
+  assert.equal(view.rhythm.redirects, false);
+});
+
+test("a ritual plan that failed still reports the clock", () => {
+  const view = buildCockpitView(
+    data({ rhythm: { ok: true, value: { ...RHYTHM, plan: null, planError: "ritual.js exited 2" } } }),
+  );
+  assert.match(view.rhythm.answer, /The ritual plan could not be read/);
+  assert.match(view.rhythm.answer, /2 ritual entries/, "the crontab is still known");
+  assert.equal(view.rhythm.planError, "ritual.js exited 2");
+  assert.equal(view.scopes[1].count, null);
+  assert.equal(view.scopes[1].state, "unplanned");
+});
+
+test("an unreadable rhythm says unavailable, and never invents a date", () => {
+  const view = buildCockpitView(data({ rhythm: { ok: false, error: "crontab: ENOENT" } }));
+  assert.equal(view.rhythm.ok, false);
+  assert.match(view.rhythm.answer, /could not be read/);
+  assert.equal(view.scopes[1].state, "unavailable");
+  assert.equal(view.scopes[1].count, null);
 });
 
 test("the vault sections reach the stage untouched", () => {

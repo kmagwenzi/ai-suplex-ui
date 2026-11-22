@@ -2,9 +2,12 @@ import type {
   Approvals,
   CockpitData,
   OperatorStatus,
+  RhythmRead,
+  RitualPlan,
   Section,
   TasklistRow,
 } from "./cockpit";
+import { daysBetween, type CronEntry, type HermesJob, type RitualReceipt } from "./rhythm";
 
 /**
  * The cockpit room — deterministic views over the four reads.
@@ -16,7 +19,7 @@ import type {
  * the console keeps standing.
  */
 
-export type CockpitScope = "operator" | "approvals" | "tasklists" | "vault";
+export type CockpitScope = "operator" | "rhythm" | "approvals" | "tasklists" | "vault";
 
 /** An open instance, placed on a 14-day ladder so "stale" is visible, not asserted. */
 export interface AgeMark {
@@ -67,6 +70,22 @@ export interface ApprovalsView {
   bBombs: number;
 }
 
+export interface RhythmView {
+  ok: boolean;
+  error: string | null;
+  answer: string;
+  headline: string;
+  plan: RitualPlan | null;
+  planError: string | null;
+  cron: { installed: boolean; entries: CronEntry[]; note: string | null };
+  hermes: { jobs: HermesJob[]; note: string | null };
+  receipt: RitualReceipt | null;
+  /** Days since the last receipt — the ritual's proof-of-life gap. */
+  receiptAge: number | null;
+  /** True when a cron line still appends into Memory/ritual-log.md. */
+  redirects: boolean;
+}
+
 export interface TasklistsView {
   ok: boolean;
   error: string | null;
@@ -83,12 +102,13 @@ export interface CockpitView {
   identity: { date: string; cycle: number; week: number; open: number; stale: number; vault: string | null };
   scopes: ScopeRow[];
   operator: OperatorView;
+  rhythm: RhythmView;
   approvals: ApprovalsView;
   tasklists: TasklistsView;
   vault: { context: Section<string>; log: Section<string> };
 }
 
-export const SCOPE_IDS: CockpitScope[] = ["operator", "approvals", "tasklists", "vault"];
+export const SCOPE_IDS: CockpitScope[] = ["operator", "rhythm", "approvals", "tasklists", "vault"];
 
 /**
  * The rail is also a link: /cockpit?scope=approvals opens the inbox directly, which is
@@ -265,6 +285,88 @@ function buildApprovals(approvals: Section<Approvals>): ApprovalsView {
   };
 }
 
+function rhythmAnswer(read: RhythmRead, receiptAge: number | null): string {
+  const parts: string[] = [];
+
+  if (read.plan) {
+    const when =
+      read.plan.daysAway === 0
+        ? "is today"
+        : read.plan.daysAway === 1
+          ? "is tomorrow"
+          : "is in " + read.plan.daysAway + " days";
+    parts.push(
+      "The " +
+        sentence(read.plan.name) +
+        " ritual " +
+        when +
+        " — " +
+        count(read.plan.steps.length, "step") +
+        ", " +
+        read.plan.mine +
+        " of them yours",
+    );
+  } else {
+    parts.push("The ritual plan could not be read");
+  }
+
+  const rituals = read.cron.entries.filter((e) => e.kind === "ritual").length;
+  parts.push(
+    rituals > 0
+      ? "the crontab carries " + count(rituals, "ritual entry", "ritual entries")
+      : "nothing in the crontab runs a ritual",
+  );
+
+  if (read.receipt) {
+    const age = receiptAge ?? 0;
+    parts.push(
+      "the last receipt is " + formatDay(read.receipt.date) + (age > 7 ? ", " + age + " days old" : ""),
+    );
+  } else {
+    parts.push("no receipt has been written");
+  }
+
+  return parts.map(sentence).join(". ") + ".";
+}
+
+function buildRhythm(section: Section<RhythmRead>, today: string): RhythmView {
+  if (!section.ok) {
+    return {
+      ok: false,
+      error: section.error,
+      answer: "The rhythm could not be read — the clock and the ritual log are out of reach.",
+      headline: "unavailable",
+      plan: null,
+      planError: null,
+      cron: { installed: false, entries: [], note: null },
+      hermes: { jobs: [], note: null },
+      receipt: null,
+      receiptAge: null,
+      redirects: false,
+    };
+  }
+
+  const read = section.value;
+  const receiptAge = read.receipt ? daysBetween(read.receipt.date, today) : null;
+  const lastReceipt = read.receipt ? formatDay(read.receipt.date) : "—";
+
+  const cronPart = read.cron.installed ? read.cron.entries.length + " cron" : "no cron";
+
+  return {
+    ok: true,
+    error: null,
+    answer: rhythmAnswer(read, receiptAge),
+    headline: cronPart + " · " + read.hermes.jobs.length + " agent · receipt " + lastReceipt,
+    plan: read.plan,
+    planError: read.planError,
+    cron: read.cron,
+    hermes: read.hermes,
+    receipt: read.receipt,
+    receiptAge,
+    redirects: read.cron.entries.some((e) => Boolean(e.redirect)),
+  };
+}
+
 function buildTasklists(status: Section<OperatorStatus>): TasklistsView {
   if (!status.ok) {
     return {
@@ -308,7 +410,9 @@ function buildTasklists(status: Section<OperatorStatus>): TasklistsView {
 }
 
 export function buildCockpitView(data: CockpitData): CockpitView {
+  const today = data.status.ok ? data.status.value.date : new Date().toISOString().slice(0, 10);
   const operator = buildOperator(data.status);
+  const rhythm = buildRhythm(data.rhythm, today);
   const approvals = buildApprovals(data.approvals);
   const tasklists = buildTasklists(data.status);
   const waiting = approvals.gates.length + approvals.ready;
@@ -330,6 +434,18 @@ export function buildCockpitView(data: CockpitData): CockpitView {
         state: !operator.ok ? "unavailable" : operator.stale.length ? `${operator.stale.length} stale` : "fresh",
       },
       {
+        id: "rhythm",
+        label: "Rhythm",
+        count: rhythm.plan ? rhythm.plan.steps.length : null,
+        state: !rhythm.ok
+          ? "unavailable"
+          : rhythm.plan
+            ? rhythm.plan.daysAway === 0
+              ? "due today"
+              : `in ${rhythm.plan.daysAway}d`
+            : "unplanned",
+      },
+      {
         id: "approvals",
         label: "Approvals inbox",
         count: approvals.ok ? waiting : null,
@@ -344,6 +460,7 @@ export function buildCockpitView(data: CockpitData): CockpitView {
       { id: "vault", label: "Vault", count: null, state: "read-only" },
     ],
     operator,
+    rhythm,
     approvals,
     tasklists,
     vault: { context: data.vaultContext, log: data.vaultLog },

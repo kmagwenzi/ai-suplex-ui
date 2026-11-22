@@ -3,7 +3,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { configuredVaultPath, resolveVault } from "@/lib/shell/vault";
-import { runTool } from "@/lib/shell/exec";
+import { runBin, runTool } from "@/lib/shell/exec";
+import {
+  nextRitual,
+  parseCrontab,
+  parseHermesJobs,
+  parseReceipt,
+  type CronEntry,
+  type HermesJob,
+  type RitualReceipt,
+} from "@/lib/shell/rhythm";
 
 /**
  * The cockpit's data layer. File-first: it imports the vault's
@@ -90,6 +99,38 @@ export interface Approvals {
   bBombs: { count: number };
 }
 
+export interface RitualStep {
+  id: string;
+  label: string;
+  owner: string;
+  status: string;
+  tier: string;
+}
+
+/** The ritual that is actually next, read from the tool that sequences it. */
+export interface RitualPlan {
+  name: string;
+  title: string;
+  date: string;
+  daysAway: number;
+  steps: RitualStep[];
+  /** Steps the Hustler owns — the ones the machine cannot do. */
+  mine: number;
+  scripted: number;
+  skipped: number;
+}
+
+/** The clock: what cron runs, what the ritual asks, and when it last left a receipt. */
+export interface RhythmRead {
+  /** The deterministic half: `crontab -l` on this machine. */
+  cron: { installed: boolean; entries: CronEntry[]; note: string | null };
+  /** The agent-shaped half: documented in Tools/cron/hermes-jobs.md, not a profile read. */
+  hermes: { jobs: HermesJob[]; note: string | null };
+  plan: RitualPlan | null;
+  planError: string | null;
+  receipt: RitualReceipt | null;
+}
+
 export type Section<T> =
   | { ok: true; value: T }
   | { ok: false; error: string; command?: string; exitCode?: number | null };
@@ -98,6 +139,7 @@ export interface CockpitData {
   vault: string | null;
   status: Section<OperatorStatus>;
   approvals: Section<Approvals>;
+  rhythm: Section<RhythmRead>;
   vaultContext: Section<string>;
   vaultLog: Section<string>;
 }
@@ -172,6 +214,78 @@ async function loadStatus(vault: string): Promise<Section<OperatorStatus>> {
   }
 }
 
+/**
+ * The rhythm: `crontab -l` (a read), the next ritual's own plan, and the receipt log.
+ * A machine with no crontab is not an error — it is a fact the cockpit should state.
+ */
+async function loadRhythm(vault: string, today: string): Promise<Section<RhythmRead>> {
+  let cron: RhythmRead["cron"] = { installed: false, entries: [], note: null };
+
+  const crontab = await runBin("crontab", ["-l"], vault, 10000);
+  if (crontab.ok) {
+    cron = { installed: true, entries: parseCrontab(crontab.stdout), note: null };
+  } else if (crontab.code === 1 && /no crontab/i.test(crontab.stderr ?? "")) {
+    cron = { installed: false, entries: [], note: "no crontab is installed for this user" };
+  } else if (/ENOENT/.test(crontab.message)) {
+    cron = { installed: false, entries: [], note: "crontab is not available on this machine" };
+  } else {
+    cron = { installed: false, entries: [], note: crontab.message.split("\n")[0] };
+  }
+
+  let hermes: RhythmRead["hermes"] = { jobs: [], note: null };
+  try {
+    const jobs = parseHermesJobs(fs.readFileSync(path.join(vault, "Tools", "cron", "hermes-jobs.md"), "utf8"));
+    hermes = {
+      jobs,
+      note: jobs.length === 0 ? "Tools/cron/hermes-jobs.md lists no agent-shaped job" : null,
+    };
+  } catch {
+    hermes = { jobs: [], note: "Tools/cron/hermes-jobs.md is not in this vault" };
+  }
+
+  const next = nextRitual(today);
+  let plan: RitualPlan | null = null;
+  let planError: string | null = null;
+
+  // Without --run this is a plan, not a ritual: ritual.js has no side effect here.
+  const result = await runTool(["Tools/ritual.js", next.name, "--tier", "ultra", "--json"], vault, 30000);
+  if (!result.ok) {
+    planError = result.message.split("\n")[0];
+  } else {
+    try {
+      const raw = parseJson<{ title?: string; steps?: RitualStep[] }>(result.stdout);
+      const steps: RitualStep[] = (raw.steps ?? []).map((s) => ({
+        id: s.id,
+        label: s.label,
+        owner: s.owner,
+        status: s.status,
+        tier: s.tier,
+      }));
+      plan = {
+        name: next.name,
+        title: raw.title ?? next.name,
+        date: next.date,
+        daysAway: next.daysAway,
+        steps,
+        mine: steps.filter((s) => s.owner === "hustler").length,
+        scripted: steps.filter((s) => s.owner === "builder").length,
+        skipped: steps.filter((s) => s.status === "skipped").length,
+      };
+    } catch {
+      planError = "the ritual tool returned output that is not JSON";
+    }
+  }
+
+  let receipt: RitualReceipt | null = null;
+  try {
+    receipt = parseReceipt(fs.readFileSync(path.join(vault, "Memory", "ritual-log.md"), "utf8"));
+  } catch {
+    receipt = null;
+  }
+
+  return { ok: true, value: { cron, hermes, plan, planError, receipt } };
+}
+
 /** Every section fails independently — a broken tool must not blank the cockpit. */
 export async function loadCockpit(): Promise<CockpitData> {
   const vault = resolveVault();
@@ -182,6 +296,7 @@ export async function loadCockpit(): Promise<CockpitData> {
       vault: null,
       status: { ok: false, error },
       approvals: { ok: false, error },
+      rhythm: { ok: false, error },
       vaultContext: { ok: false, error },
       vaultLog: { ok: false, error },
     };
@@ -198,6 +313,7 @@ export async function loadCockpit(): Promise<CockpitData> {
       vault,
       status,
       approvals: { ok: false, error },
+      rhythm: { ok: false, error },
       vaultContext: { ok: false, error },
       vaultLog: { ok: false, error },
     };
@@ -211,6 +327,9 @@ export async function loadCockpit(): Promise<CockpitData> {
     }
   };
 
+  const today = status.ok ? status.value.date : new Date().toISOString().slice(0, 10);
+  const rhythm = await loadRhythm(vault, today);
+
   return {
     vault,
     status,
@@ -218,6 +337,7 @@ export async function loadCockpit(): Promise<CockpitData> {
       () => service.approvals(),
       "node Tools/approvals.js --json",
     ),
+    rhythm,
     vaultContext: section(
       () => service.vaultContext() ?? "",
       "Memory/vault-context.md",

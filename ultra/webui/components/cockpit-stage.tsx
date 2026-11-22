@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Panel } from "@/components/panel";
-import type { AgeMark, CockpitScope, CockpitView } from "@/lib/shell/cockpit-room";
+import { formatDay, type AgeMark, type CockpitScope, type CockpitView } from "@/lib/shell/cockpit-room";
 
 /**
  * The AS MC cockpit — the instrument's ops scene.
@@ -15,6 +15,7 @@ import type { AgeMark, CockpitScope, CockpitView } from "@/lib/shell/cockpit-roo
 
 const SCOPES: { id: CockpitScope; label: string }[] = [
   { id: "operator", label: "Operator state" },
+  { id: "rhythm", label: "Rhythm" },
   { id: "approvals", label: "Approvals inbox" },
   { id: "tasklists", label: "Active tasklists" },
   { id: "vault", label: "Vault" },
@@ -256,6 +257,190 @@ function TasklistsBody({ view }: { view: CockpitView["tasklists"] }) {
   );
 }
 
+/** Two state words per line keeps the rail's footer compact as scopes grow. */
+function stateLines(states: string[]): string[] {
+  const rows: string[] = [];
+  for (let i = 0; i < states.length; i += 2) rows.push(states.slice(i, i + 2).join(" · "));
+  return rows;
+}
+
+function RhythmBody({ view }: { view: CockpitView["rhythm"] }) {
+  const plan = view.plan;
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <span className="micro">Next out of the gate</span>
+        <span className="micro">
+          {plan
+            ? formatDay(plan.date) + " · " + (plan.daysAway === 0 ? "today" : "in " + plan.daysAway + "d")
+            : "—"}
+        </span>
+      </div>
+
+      {plan ? (
+        <>
+          <p className="mt-2 text-[15px] leading-6 text-[color:var(--stage-ink)]">{plan.title}</p>
+
+          <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+            <Stat label="Steps" value={plan.steps.length} />
+            <Stat label="Yours" value={plan.mine} note="handoff" />
+            <Stat label="Scripted" value={plan.scripted} note="builder" />
+            <Stat label="Skipped" value={plan.skipped} note="precondition" />
+          </div>
+
+          <ul className="mt-5 border-t border-[color:var(--hairline)]">
+            {plan.steps.map((s) => (
+              <li key={s.id} className="flex items-baseline gap-3 border-b border-[color:var(--hairline)] py-2">
+                <span className="w-7 shrink-0 font-mono text-[10px] text-[color:var(--stage-mut)]">{s.id}</span>
+                <span
+                  className="line-clamp-2 min-w-0 flex-1 text-[12.5px] leading-5 text-[color:var(--stage-cream)] sm:line-clamp-1"
+                  title={s.label}
+                >
+                  {s.label}
+                </span>
+                <span
+                  className={
+                    "shrink-0 font-mono text-[9.5px] uppercase tracking-[0.16em] " +
+                    (s.owner === "hustler"
+                      ? "text-[color:var(--stage-gold-hi)]"
+                      : "text-[color:var(--stage-mut)]")
+                  }
+                >
+                  {s.owner}
+                </span>
+                {s.status === "skipped" ? (
+                  <span className="shrink-0 font-mono text-[9.5px] uppercase tracking-[0.16em] text-[color:var(--stage-mut)]">
+                    skip
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="mt-2 text-[12.5px] leading-5 text-[color:var(--stage-mut)]">
+          {view.planError ?? "The ritual tool returned no plan."}
+        </p>
+      )}
+
+      <div className="mt-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <span className="micro">Scheduled</span>
+        <span className="micro">
+          {view.cron.installed ? view.cron.entries.length + " entries" : "no crontab"}
+        </span>
+      </div>
+
+      {view.cron.installed && view.cron.entries.length > 0 ? (
+        <ul className="mt-2 border-t border-[color:var(--hairline)]">
+          {view.cron.entries.map((entry, i) => (
+            <li key={entry.label + i} className="flex items-baseline gap-3 border-b border-[color:var(--hairline)] py-2">
+              <span className="w-24 shrink-0 font-mono text-[10.5px] text-[color:var(--stage-cream)]">
+                {entry.when}
+              </span>
+              <span
+                className="min-w-0 flex-1 truncate font-mono text-[11px] text-[color:var(--stage-mut)]"
+                title={entry.label}
+              >
+                {entry.label}
+              </span>
+              <span
+                className={
+                  "shrink-0 font-mono text-[9.5px] uppercase tracking-[0.16em] " +
+                  (entry.kind === "ritual"
+                    ? "text-[color:var(--stage-gold-hi)]"
+                    : "text-[color:var(--stage-mut)]")
+                }
+              >
+                {entry.kind}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-[12.5px] leading-5 text-[color:var(--stage-mut)]">
+          {view.cron.note ?? "No crontab entry is installed, so every ritual is manual."}
+        </p>
+      )}
+
+      <div className="mt-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <span className="micro">Agent-shaped · hermes cron</span>
+        <span className="micro">{view.hermes.jobs.length} jobs</span>
+      </div>
+
+      {view.hermes.jobs.length > 0 ? (
+        <>
+          <ul className="mt-2 border-t border-[color:var(--hairline)]">
+            {view.hermes.jobs.map((job) => (
+              <li
+                key={job.name}
+                className="flex items-baseline gap-3 border-b border-[color:var(--hairline)] py-2"
+              >
+                <span className="w-24 shrink-0 font-mono text-[10.5px] text-[color:var(--stage-cream)]">
+                  {job.when}
+                </span>
+                <span
+                  className="min-w-0 flex-1 truncate font-mono text-[11px] text-[color:var(--stage-mut)]"
+                  title={job.name}
+                >
+                  {job.name}
+                </span>
+                <span className="shrink-0 font-mono text-[9.5px] uppercase tracking-[0.16em] text-[color:var(--stage-mut)]">
+                  {job.deliver}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] leading-4 text-[color:var(--stage-mut)]">
+            Read from <span className="font-mono">Tools/cron/hermes-jobs.md</span>. This pane cannot see a
+            Hermes profile, so these jobs are documented, not verified.
+          </p>
+        </>
+      ) : (
+        <p className="mt-2 text-[12.5px] leading-5 text-[color:var(--stage-mut)]">
+          {view.hermes.note ?? "No agent-shaped job is documented."}
+        </p>
+      )}
+
+      {view.redirects ? (
+        <p className="mt-4 border border-[rgba(184,134,46,0.4)] bg-[rgba(184,134,46,0.06)] px-4 py-3 text-[12.5px] leading-5 text-[color:var(--stage-cream)]">
+          A cron line still appends its output into <span className="font-mono">Memory/ritual-log.md</span>. The
+          log split is documented; the installed crontab was never updated.
+        </p>
+      ) : null}
+
+      <div className="mt-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <span className="micro">Last receipt</span>
+        <span className="micro">
+          {view.receiptAge === null
+            ? "none"
+            : view.receiptAge === 1
+              ? "1 day ago"
+              : view.receiptAge + " days ago"}
+        </span>
+      </div>
+
+      {view.receipt ? (
+        <div className="mt-2 border-t border-[color:var(--hairline)] pt-3">
+          <p className="font-mono text-[11px] text-[color:var(--stage-cream)]">
+            {formatDay(view.receipt.date)} · {view.receipt.name}
+          </p>
+          <p className="mt-1 font-mono text-[10.5px] leading-5 text-[color:var(--stage-mut)]">
+            ran {view.receipt.ran.join(", ") || "none"} · handed off {view.receipt.handed.join(", ") || "none"}
+          </p>
+          <p className="mt-1.5 text-[12.5px] leading-5 text-[color:var(--stage-ink)]">
+            {view.receipt.verdict || "no verdict recorded"}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-2 text-[12.5px] leading-5 text-[color:var(--stage-mut)]">
+          No receipt in the log — the ritual has run without leaving proof.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function VaultBody({ vault }: { vault: CockpitView["vault"] }) {
   const [file, setFile] = useState<"context" | "log">("context");
   const section = file === "context" ? vault.context : vault.log;
@@ -308,14 +493,14 @@ export function CockpitStage({ view, initialScope = "operator" }: { view: Cockpi
   const [scope, setScope] = useState<CockpitScope>(initialScope);
   const meta = view.scopes.find((s) => s.id === scope) ?? view.scopes[0];
 
-  const section =
-    scope === "operator"
-      ? view.operator
-      : scope === "approvals"
-        ? view.approvals
-        : scope === "tasklists"
-          ? view.tasklists
-          : null;
+  const sections: Record<CockpitScope, { answer: string; headline: string } | null> = {
+    operator: view.operator,
+    rhythm: view.rhythm,
+    approvals: view.approvals,
+    tasklists: view.tasklists,
+    vault: null,
+  };
+  const section = sections[scope];
 
   const answer =
     section?.answer ?? "The vault's own context, verbatim — read here, edited there, never written by this surface.";
@@ -377,12 +562,11 @@ export function CockpitStage({ view, initialScope = "operator" }: { view: Cockpi
             })}
           </nav>
           <div className="mt-6 border-t border-[color:var(--hairline)] pt-3">
-            <p className="font-mono text-[10.5px] leading-5 text-[color:var(--stage-mut)]">
-              {view.scopes[0].state} · {view.scopes[1].state}
-            </p>
-            <p className="font-mono text-[10.5px] leading-5 text-[color:var(--stage-mut)]">
-              {view.scopes[2].state} · {view.scopes[3].state}
-            </p>
+            {stateLines(view.scopes.map((s) => s.state)).map((line, i) => (
+              <p key={i} className="font-mono text-[10.5px] leading-5 text-[color:var(--stage-mut)]">
+                {line}
+              </p>
+            ))}
           </div>
         </aside>
 
@@ -404,6 +588,14 @@ export function CockpitStage({ view, initialScope = "operator" }: { view: Cockpi
               ) : (
                 <Panel tone="error" title="Operator state unavailable">
                   {view.operator.error}
+                </Panel>
+              )
+            ) : scope === "rhythm" ? (
+              view.rhythm.ok ? (
+                <RhythmBody view={view.rhythm} />
+              ) : (
+                <Panel tone="error" title="Rhythm unavailable">
+                  {view.rhythm.error}
                 </Panel>
               )
             ) : scope === "approvals" ? (
