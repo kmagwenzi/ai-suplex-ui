@@ -1,4 +1,5 @@
 import "server-only";
+import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { configuredVaultPath, resolveVault } from "@/lib/shell/vault";
@@ -41,6 +42,28 @@ export interface StaleRow {
   fix: string;
 }
 
+/** The tool's own read of the day: sessions, the last ship, the memory pulse. */
+export interface Activity {
+  date?: string;
+  sessionStart?: boolean;
+  sessionEnd?: boolean;
+  lastShipped?: { title: string; date: string; path?: string } | null;
+  weekly?: {
+    review?: boolean;
+    reviewFile?: string | null;
+    ritual?: boolean;
+    lastRitual?: string | null;
+    ritualDays?: number | null;
+  };
+  memory?: {
+    semantic: number;
+    procedural: number;
+    episodic: number;
+    lessons: number;
+    bBombs?: number;
+  };
+}
+
 export interface OperatorStatus {
   date: string;
   cycle: number;
@@ -50,6 +73,8 @@ export interface OperatorStatus {
   instances: ParticipantInstance[];
   tasklists: TasklistRow[];
   stale: StaleRow[];
+  /** Present in current asmc.js; optional so an older tool still degrades honestly. */
+  activity?: Activity;
 }
 
 export interface Approvals {
@@ -94,16 +119,25 @@ const importEsm = new Function("specifier", "return import(specifier)") as (
 
 let fileService: Promise<FileService> | null = null;
 
+/** The project folder has been renamed once already — resolve it, do not assume it. */
+const SERVICE_CANDIDATES = [
+  ["Projects", "AI-Suplex Ultra Edition", "asm-cockpit", "lib", "file-service.mjs"],
+  ["Projects", "AI-Suplex Ultra", "asm-cockpit", "lib", "file-service.mjs"],
+];
+
+function findFileService(vault: string): string {
+  for (const parts of SERVICE_CANDIDATES) {
+    const file = path.join(vault, ...parts);
+    if (fs.existsSync(file)) return file;
+  }
+  throw new Error(
+    "asm-cockpit/lib/file-service.mjs was not found — looked under Projects/AI-Suplex Ultra Edition and Projects/AI-Suplex Ultra",
+  );
+}
+
 function loadFileService(vault: string): Promise<FileService> {
   if (!fileService) {
-    const file = path.join(
-      vault,
-      "Projects",
-      "AI-Suplex Ultra Edition",
-      "asm-cockpit",
-      "lib",
-      "file-service.mjs",
-    );
+    const file = findFileService(vault);
     // The module resolves its own vault at import time; make it agree with this shell.
     if (!process.env.AISUPLEX_VAULT) process.env.AISUPLEX_VAULT = vault;
     fileService = importEsm(pathToFileURL(file).href);

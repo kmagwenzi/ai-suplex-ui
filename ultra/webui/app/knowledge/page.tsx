@@ -1,5 +1,7 @@
 import { InstrumentRoom } from "@/components/instrument-room";
 import { ResonanceEnhancer } from "@/components/resonance-enhancer";
+import { Panel } from "@/components/panel";
+import { configuredVaultPath, resolveVault } from "@/lib/shell/vault";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,19 @@ export const dynamic = "force-dynamic";
  * because a map you cannot read is not evidence.
  */
 export default function KnowledgePage() {
+  // The room fetches its graph in the browser, so a missing vault would leave the page
+  // on "resolving" with nothing named. Decide it on the server, like every other surface.
+  if (!resolveVault()) {
+    return (
+      <div className="p-6">
+        <Panel tone="error" title="Vault unavailable">
+          <code className="font-mono text-[13px]">AISUPLEX_VAULT</code> is unset or unreadable
+          (resolved: <code className="font-mono text-[13px]">{configuredVaultPath()}</code>).
+        </Panel>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-full flex-col">
       <InstrumentRoom scene="knowledge" />

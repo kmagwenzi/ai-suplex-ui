@@ -2,7 +2,7 @@
   "name": "ultra-webui",
   "version": "0.1.0",
   "private": true,
-  "description": "AI-Suplex Ultra — thin host over the six deterministic surfaces + AS MC cockpit",
+  "description": "AI-Suplex Ultra — thin host over five surfaces and the AS MC cockpit",
   "engines": {
     "node": ">=20"
   },
@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start -H 127.0.0.1 -p \"${PORT:-3100}\"",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/shell/compose.test.ts lib/shell/commands.test.ts lib/shell/command-intent.test.ts lib/shell/opportunity-room.test.ts lib/shell/knowledge-room.test.ts lib/shell/resonance.test.ts",
+    "test": "tsx --test lib/shell/compose.test.ts lib/shell/commands.test.ts lib/shell/command-intent.test.ts lib/shell/opportunity-room.test.ts lib/shell/knowledge-room.test.ts lib/shell/resonance.test.ts lib/shell/cockpit-room.test.ts",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {

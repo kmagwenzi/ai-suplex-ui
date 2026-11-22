@@ -1,7 +1,7 @@
+import { CockpitStage } from "@/components/cockpit-stage";
 import { Panel } from "@/components/panel";
-import { SurfaceHeader } from "@/components/surface-header";
-import { CockpitBody } from "@/components/cockpit-sections";
 import { loadCockpit } from "@/lib/shell/cockpit";
+import { buildCockpitView, parseScope } from "@/lib/shell/cockpit-room";
 import { getTier } from "@/lib/shell/surfaces";
 import { configuredVaultPath } from "@/lib/shell/vault";
 
@@ -9,11 +9,17 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * The AS MC cockpit — the ops pane, deliberately separate from the intelligence
- * surfaces. File-first and local-only: it reads the vault through the cockpit data
- * layer and never writes. Approvals are shown, never taken.
+ * The AS MC cockpit — rank 0: the operator the other four surfaces run on.
+ *
+ * It reads the vault through the cockpit data layer and never writes. The view model is
+ * composed on the server (pure, tested in node) and handed to the stage, so the browser
+ * gets numbers, not a second copy of the tools.
  */
-export default async function CockpitPage() {
+export default async function CockpitPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ scope?: string | string[] }>;
+}) {
   const tier = getTier();
   if (tier === "free") {
     return (
@@ -38,14 +44,23 @@ export default async function CockpitPage() {
     );
   }
 
+  const view = buildCockpitView(data);
+  const initialScope = parseScope((await searchParams).scope);
+
   return (
-    <div className="flex h-full flex-col">
-      <SurfaceHeader
-        title="AS MC cockpit"
-        description="The local ops surface — read-first. The cockpit reports; the Hustler decides."
-      />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <CockpitBody data={data} />
+    <div className="flex min-h-full flex-col">
+      <CockpitStage view={view} initialScope={initialScope} />
+      <div className="px-6 py-7 sm:px-9">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+          <p className="max-w-[62ch] text-[13px] leading-6 text-ink-2">
+            Every read above comes from the vault itself — operator state from{" "}
+            <code className="font-mono text-[12px]">Tools/asmc.js status</code>, the inbox from the
+            approvals tool, the two memory files verbatim. Nothing here writes, approves or archives.
+          </p>
+          <p className="max-w-[42ch] truncate font-mono text-[11px] text-muted" title={data.vault}>
+            {data.vault}
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -19,7 +19,9 @@ type Scene = "knowledge" | "opportunity";
 
 type State =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  // `vault` marks the 501 case: the graph is missing because the vault is, and the
+  // panel should say that rather than blame the route.
+  | { status: "error"; message: string; vault?: boolean }
   | { status: "ok"; graph: RoomGraph };
 
 const SCENES: { id: Scene; label: string; href: string }[] = [
@@ -138,7 +140,13 @@ export function InstrumentRoom({ scene }: { scene: Scene }) {
         const res = await fetch(endpoint);
         if (!res.ok) {
           const body = await res.json().catch(() => null);
-          if (active) setState({ status: "error", message: body?.error ?? `the graph route answered ${res.status}` });
+          if (active) {
+            setState({
+              status: "error",
+              message: body?.error ?? `the graph route answered ${res.status}`,
+              vault: res.status === 501,
+            });
+          }
           return;
         }
         const graph = (await res.json()) as RoomGraph;
@@ -302,7 +310,11 @@ export function InstrumentRoom({ scene }: { scene: Scene }) {
           {state.status === "loading" ? (
             <div className="py-24 text-center"><span className="micro">Resolving the graph…</span></div>
           ) : state.status === "error" ? (
-            <div className="pt-6"><Panel tone="error" title="The graph did not answer">{state.message}</Panel></div>
+            <div className="pt-6">
+              <Panel tone="error" title={state.vault ? "Vault unavailable" : "The graph did not answer"}>
+                {state.message}
+              </Panel>
+            </div>
           ) : result ? (
             <>
               <div className="reveal py-6">
