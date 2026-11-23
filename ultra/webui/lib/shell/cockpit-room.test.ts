@@ -128,6 +128,7 @@ function data(over: Partial<CockpitData> = {}): CockpitData {
     status: { ok: true, value: status() },
     approvals: { ok: true, value: approvals() },
     rhythm: { ok: true, value: RHYTHM },
+    morning: { ok: true, value: [] },
     vaultContext: { ok: true, value: "# context" },
     vaultLog: { ok: true, value: "# log" },
     ...over,

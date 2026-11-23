@@ -11,6 +11,7 @@ import type {
 } from "./cockpit";
 import { isFirstRun } from "./first-run";
 import { linkFor, type RowLink } from "./links";
+import { morningDelta, type MorningView, type SnapshotRow } from "./morning";
 import { daysBetween, type CronEntry, type HermesJob, type RitualReceipt } from "./rhythm";
 
 /**
@@ -137,6 +138,8 @@ export interface BoardView {
 }
 
 export interface CockpitView {
+  /** Since yesterday: the one panel that gives a returning user a reason to return. */
+  morning: MorningView;
   identity: { date: string; cycle: number; week: number; open: number; stale: number; vault: string | null };
   scopes: ScopeRow[];
   operator: OperatorView;
@@ -521,6 +524,7 @@ function buildBoard(section: Section<BoardRead> | undefined, inbox: number): Boa
 export function buildCockpitView(data: CockpitData): CockpitView {
   const today = data.status.ok ? data.status.value.date : new Date().toISOString().slice(0, 10);
   const operator = buildOperator(data.status, data.vault);
+  const morning = data.morning.ok ? morningDelta(data.morning.value) : morningDelta([]);
   const rhythm = buildRhythm(data.rhythm, today, data.vault);
   const approvals = buildApprovals(data.approvals);
   const tasklists = buildTasklists(data.status, data.vault);
@@ -569,6 +573,7 @@ export function buildCockpitView(data: CockpitData): CockpitView {
       },
       { id: "vault", label: "Vault", count: null, state: "read-only" },
     ],
+    morning,
     operator,
     rhythm,
     approvals,

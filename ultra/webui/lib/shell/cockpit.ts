@@ -4,6 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { configuredVaultPath, resolveVault } from "@/lib/shell/vault";
 import { runBin, runTool } from "@/lib/shell/exec";
+import { parseSnapshots, type SnapshotRow } from "@/lib/shell/morning";
 import {
   nextRitual,
   parseCrontab,
@@ -175,6 +176,8 @@ export interface CockpitData {
   board?: Section<BoardRead>;
   approvals: Section<Approvals>;
   rhythm: Section<RhythmRead>;
+  /** One line per day from `Tools/asmc.js snapshot` — the Morning Read's baseline. */
+  morning: Section<SnapshotRow[]>;
   vaultContext: Section<string>;
   vaultLog: Section<string>;
 }
@@ -353,6 +356,20 @@ async function loadRhythm(vault: string, today: string): Promise<Section<RhythmR
   return { ok: true, value: { cron, hermes, plan, planError, receipt } };
 }
 
+/**
+ * The snapshot log, verbatim. An absent file is the honest first run — not an error, and not
+ * something to synthesise: the strip says "no baseline" and names the command that writes one.
+ */
+function loadMorning(vault: string): Section<SnapshotRow[]> {
+  const file = path.join(vault, "Memory", "asmc", "snapshots.jsonl");
+  if (!fs.existsSync(file)) return { ok: true, value: [] };
+  try {
+    return { ok: true, value: parseSnapshots(fs.readFileSync(file, "utf8")) };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message.split("\n")[0], command: "node Tools/asmc.js snapshot" };
+  }
+}
+
 /** Every section fails independently — a broken tool must not blank the cockpit. */
 export async function loadCockpit(): Promise<CockpitData> {
   const vault = resolveVault();
@@ -365,6 +382,7 @@ export async function loadCockpit(): Promise<CockpitData> {
       board: { ok: false, error },
       approvals: { ok: false, error },
       rhythm: { ok: false, error },
+      morning: { ok: false, error },
       vaultContext: { ok: false, error },
       vaultLog: { ok: false, error },
     };
@@ -377,12 +395,16 @@ export async function loadCockpit(): Promise<CockpitData> {
 
   if (service instanceof Error) {
     const error = `the cockpit data layer could not be loaded — ${service.message}`;
+    // The snapshot log is a plain file read — it does not need the file-service, so a vault
+    // without one still gets its Morning Read. A dependency that is not needed must not be
+    // imported into the failure.
     return {
       vault,
       status,
       board: { ok: false, error },
       approvals: { ok: false, error },
       rhythm: { ok: false, error },
+      morning: loadMorning(vault),
       vaultContext: { ok: false, error },
       vaultLog: { ok: false, error },
     };
@@ -409,6 +431,7 @@ export async function loadCockpit(): Promise<CockpitData> {
       "node Tools/approvals.js --json",
     ),
     rhythm,
+    morning: loadMorning(vault),
     vaultContext: section(
       () => service.vaultContext() ?? "",
       "Memory/vault-context.md",

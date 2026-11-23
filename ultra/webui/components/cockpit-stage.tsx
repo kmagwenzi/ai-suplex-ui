@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Panel } from "@/components/panel";
 import { formatDay, type AgeMark, type CockpitScope, type CockpitView } from "@/lib/shell/cockpit-room";
+import { counterNoun } from "@/lib/shell/morning";
 
 /**
  * The AS MC cockpit — the instrument's ops scene.
@@ -91,9 +92,79 @@ function Stat({
   );
 }
 
-function OperatorBody({ view, board }: { view: CockpitView["operator"]; board: CockpitView["board"] }) {
+/**
+ * Since yesterday — the strip that gives a returning user a reason to return.
+ *
+ * Three honest states, and no fourth: a first run (no baseline), a still day (nothing moved),
+ * or a list of the specific things that moved. A dashboard that manufactures movement teaches
+ * its reader to stop believing it, so "unchanged" is a real answer here.
+ */
+/** Counters read as "+3 lessons"; board states read as "4 → 3", because "+1 instances" does not. */
+const COUNTER_KEYS = new Set(["lessons", "artifacts", "bBombs", "episodic"]);
+
+function MorningStrip({ view }: { view: CockpitView["morning"] }) {
+  return (
+    <div className="mt-6 border-y border-[color:var(--hairline)] py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <span className="micro">Since yesterday</span>
+        <span className="micro">
+          {view.kind === "no-baseline"
+            ? view.days === 1
+              ? "1 day on record"
+              : "no days on record"
+            : view.days + " days on record"}
+        </span>
+      </div>
+
+      {view.kind === "no-baseline" ? (
+        <p className="mt-1.5 max-w-[64ch] text-[13px] leading-6 text-[color:var(--stage-mut)]">
+          No baseline yet.{" "}
+          <code className="font-mono text-[12px] text-[color:var(--stage-cream)]">node Tools/asmc.js snapshot</code>{" "}
+          writes one line a day — the daily ritual runs it at 21:30 — and this strip subtracts two of them.
+        </p>
+      ) : view.kind === "unchanged" ? (
+        <p className="mt-1.5 max-w-[64ch] text-[13px] leading-6 text-[color:var(--stage-mut)]">
+          Nothing moved since {formatDay(view.since)}. Some days are like that — the vault still counted.
+        </p>
+      ) : (
+        <ul className="mt-2 flex flex-wrap items-baseline gap-x-5 gap-y-1.5">
+          {view.lines.map((line) => (
+            <li key={line.key} className="font-mono text-[11.5px] leading-5 text-[color:var(--stage-ink)]">
+              {line.key === "shipped" ? (
+                <span className="text-[color:var(--stage-gold-hi)]">shipped {formatDay(String(line.to))}</span>
+              ) : line.delta !== null && line.delta > 0 && COUNTER_KEYS.has(line.key) ? (
+                <span>
+                  <span className="text-[color:var(--stage-gold-hi)]">+{line.delta}</span>{" "}
+                  {counterNoun(line.label, line.delta)}
+                </span>
+              ) : (
+                <span>
+                  {line.label}{" "}
+                  <span className="text-[color:var(--stage-mut)]">
+                    {line.from} → {line.to}
+                  </span>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function OperatorBody({
+  view,
+  board,
+  morning,
+}: {
+  view: CockpitView["operator"];
+  board: CockpitView["board"];
+  morning: CockpitView["morning"];
+}) {
   return (
     <div>
+      <MorningStrip view={morning} />
       {view.stale.length > 0 ? (
         <div className="border border-[rgba(184,134,46,0.4)] bg-[rgba(184,134,46,0.06)] px-4 py-3">
           <div className="micro text-[color:var(--stage-gold-hi)]">Past the line</div>
@@ -673,7 +744,7 @@ export function CockpitStage({ view, initialScope = "operator" }: { view: Cockpi
           <div key={scope} className="reveal mt-6">
             {scope === "operator" ? (
               view.operator.ok ? (
-                <OperatorBody view={view.operator} board={view.board} />
+                <OperatorBody view={view.operator} board={view.board} morning={view.morning} />
               ) : (
                 <Panel tone="error" title="Operator state unavailable">
                   {view.operator.error}
