@@ -1,4 +1,5 @@
 import { CockpitStage } from "@/components/cockpit-stage";
+import { FirstRun } from "@/components/first-run";
 import { Panel } from "@/components/panel";
 import { loadCockpit } from "@/lib/shell/cockpit";
 import { buildCockpitView, parseScope } from "@/lib/shell/cockpit-room";
@@ -49,16 +50,29 @@ export default async function CockpitPage({
 
   return (
     <div className="flex min-h-full flex-col">
-      <CockpitStage view={view} initialScope={initialScope} />
+      {view.firstRun ? (
+        <FirstRun surface="cockpit" />
+      ) : (
+        <CockpitStage view={view} initialScope={initialScope} />
+      )}
       <div className="px-6 py-7 sm:px-9">
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <p className="max-w-[62ch] text-[13px] leading-6 text-ink-2">
-            Every read above comes from the vault itself — operator state from{" "}
-            <code className="font-mono text-[12px]">Tools/asmc.js status</code>, the rhythm from{" "}
-            <code className="font-mono text-[12px]">crontab -l</code>,{" "}
-            <code className="font-mono text-[12px]">Tools/ritual.js</code> and the vault's own Hermes job
-            list, the inbox from the approvals tool, the two memory files verbatim. Nothing here writes,
-            approves or archives.
+            {view.firstRun ? (
+              <>
+                Nothing above was read — the vault is empty. The three commands fill it, and every panel
+                then states a number it read rather than a number it assumed.
+              </>
+            ) : (
+              <>
+                Every read above comes from the vault itself — operator state from{" "}
+                <code className="font-mono text-[12px]">Tools/asmc.js status</code>, the rhythm from{" "}
+                <code className="font-mono text-[12px]">crontab -l</code>,{" "}
+                <code className="font-mono text-[12px]">Tools/ritual.js</code> and the vault's own Hermes
+                job list, the inbox from the approvals tool, the two memory files verbatim. Nothing here
+                writes, approves or archives.
+              </>
+            )}
           </p>
           <p className="max-w-[42ch] truncate font-mono text-[11px] text-muted" title={data.vault}>
             {data.vault}

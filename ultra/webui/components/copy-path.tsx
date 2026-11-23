@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 /** Copy an absolute path to the clipboard — the thin-host hand-off beside the editor link. */
-export function CopyPathButton({ path }: { path: string }) {
+export function CopyPathButton({ path, label = "copy path" }: { path: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
   return (
@@ -20,7 +20,7 @@ export function CopyPathButton({ path }: { path: string }) {
       }}
       className="rounded border border-border px-1.5 py-0.5 text-[11px] text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
     >
-      {copied ? "copied" : "copy path"}
+      {copied ? "copied" : label}
     </button>
   );
 }

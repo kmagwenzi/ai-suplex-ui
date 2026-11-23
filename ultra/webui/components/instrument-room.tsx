@@ -311,9 +311,20 @@ export function InstrumentRoom({ scene }: { scene: Scene }) {
             <div className="py-24 text-center"><span className="micro">Resolving the graph…</span></div>
           ) : state.status === "error" ? (
             <div className="pt-6">
-              <Panel tone="error" title={state.vault ? "Vault unavailable" : "The graph did not answer"}>
-                {state.message}
-              </Panel>
+              {!state.vault && /no graph at/i.test(state.message) ? (
+                // A graph that was never built is not a failure: it is the first thing to
+                // build. Say so calmly, and name the command, not a command's stderr.
+                <Panel tone="empty" title="No graph yet">
+                  This canvas draws a graph the vault has not built. Run{" "}
+                  <code className="font-mono text-[13px]">node Tools/knowledge-graph.js --build</code>, then
+                  reload — every node on the canvas is a file in this vault, and every edge is a link
+                  between two of them.
+                </Panel>
+              ) : (
+                <Panel tone="error" title={state.vault ? "Vault unavailable" : "The graph did not answer"}>
+                  {state.message}
+                </Panel>
+              )}
             </div>
           ) : result ? (
             <>

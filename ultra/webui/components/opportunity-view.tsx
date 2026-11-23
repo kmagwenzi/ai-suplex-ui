@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Panel } from "@/components/panel";
+import { FirstRun } from "@/components/first-run";
 
 interface PipelineRow { focus: string; total: number; count: number }
 interface OverdueRow { counterparty: string; focus: string; channel: string; expected_value: number; follow_up_at: string }
@@ -102,6 +103,16 @@ export function OpportunityView() {
   }
 
   const { data } = state;
+
+  // Five sections of "none" is not a pipeline report, it is an empty record. Say so, and
+  // name the three commands that fill it — a stranger reads zeros as success otherwise.
+  const empty =
+    data.pipeline.length === 0 &&
+    data.overdue.length === 0 &&
+    data.channels.length === 0 &&
+    data.underutilized.length === 0 &&
+    data.priceBands.length === 0;
+  if (empty) return <FirstRun surface="opportunity" />;
 
   return (
     <div className="divide-y divide-border">

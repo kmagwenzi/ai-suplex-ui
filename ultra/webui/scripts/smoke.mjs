@@ -17,6 +17,8 @@ import { fileURLToPath } from "node:url";
 const BASE = process.argv[2] || `http://127.0.0.1:${process.env.PORT || 3100}`;
 const BROKEN = process.argv.includes("--broken-vault");
 const FREE = process.argv.includes("--free-tier");
+/** Run against a vault with no lanes, tasklists or memory — the R3 day-one screen. */
+const DAY_ONE = process.argv.includes("--day-one");
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const WEBUI = path.resolve(__dir, "..");
@@ -260,7 +262,11 @@ async function run() {
       break;
     }
   }
-  check(4, "artifacts byte-identical", byteOk, byteOk ? "4/4 sha256 match" : byteDetail);
+  if (DAY_ONE) {
+    skip(4, "artifacts byte-identical", "a day-one vault has no Projections/ to serve");
+  } else {
+    check(4, "artifacts byte-identical", byteOk, byteOk ? "4/4 sha256 match" : byteDetail);
+  }
 
   // C5 · unknown surface → 404 naming the key
   const unk = await http("/artifacts/nope");
@@ -318,6 +324,8 @@ async function run() {
   );
   if (process.env.AISUPLEX_MODEL_PROVIDER) {
     skip(23, "no key → deterministic", "a provider is configured in this shell");
+  } else if (DAY_ONE) {
+    skip(23, "no key → deterministic", "a day-one vault has no lane to compose a command for");
   } else {
     check(
       23,
@@ -362,24 +370,38 @@ async function run() {
   // C14 · deep-ultra is text, no ANSI
   const du = await http("/api/surface/deep-ultra");
   const duBody = du.body.toString();
-  check(14, "deep-ultra is text/plain, no ANSI", du.status === 200 && (du.contentType || "").includes("text/plain") && !duBody.includes("\x1b["), `status ${du.status}; type=${du.contentType}; ansi=${duBody.includes("\x1b[")}`);
+  if (DAY_ONE) {
+    // No tasklist means no battle — the route names it in the tool's own words, and the
+    // surface turns that into the first-run contract rather than a "tool failed" panel.
+    check(14, "deep-ultra reports no battle", du.status === 502 && /No active tasklists found/i.test(duBody), `status ${du.status}; names-no-battle=${/No active tasklists found/i.test(duBody)}`);
+  } else {
+    check(14, "deep-ultra is text/plain, no ANSI", du.status === 200 && (du.contentType || "").includes("text/plain") && !duBody.includes("\x1b["), `status ${du.status}; type=${du.contentType}; ansi=${duBody.includes("\x1b[")}`);
+  }
 
   // C11b · the ops route serves no artifact frame and names its three sections
   const cockpit = await http("/cockpit");
   const cockpitBody = cockpit.body.toString();
-  const cockpitOk =
-    cockpit.status === 200 &&
-    !cockpitBody.includes("/artifacts/") &&
-    /Operator state/.test(cockpitBody) &&
-    /Approvals inbox/.test(cockpitBody) &&
-    /Active tasklists/.test(cockpitBody);
+  // On a day-one vault the stage is replaced on purpose: five honest zeros read as a
+  // healthy board. C11 asserts the contract that replaces it instead.
+  const cockpitOk = DAY_ONE
+    ? cockpit.status === 200 &&
+      /Day one/.test(cockpitBody) &&
+      /node Tools\/asmc\.js open/.test(cockpitBody) &&
+      !/Approvals inbox/.test(cockpitBody)
+    : cockpit.status === 200 &&
+      !cockpitBody.includes("/artifacts/") &&
+      /Operator state/.test(cockpitBody) &&
+      /Approvals inbox/.test(cockpitBody) &&
+      /Active tasklists/.test(cockpitBody);
   check(
     11,
-    "cockpit reads no artifact",
+    DAY_ONE ? "cockpit names the first three commands" : "cockpit reads no artifact",
     cockpitOk,
     cockpitOk
-      ? "no /artifacts/ · operator + approvals + tasklists present"
-      : `status ${cockpit.status}; artifact-ref=${cockpitBody.includes("/artifacts/")}`,
+      ? DAY_ONE
+        ? "day-one panel · asmc open named · no stage"
+        : "no /artifacts/ · operator + approvals + tasklists present"
+      : `status ${cockpit.status}; day-one=${/Day one/.test(cockpitBody)}; stage=${/Approvals inbox/.test(cockpitBody)}`,
   );
 
   // C6/C15 need the broken-vault run

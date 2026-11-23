@@ -9,6 +9,7 @@ import type {
   BoardRead,
   BoardTasklist,
 } from "./cockpit";
+import { isFirstRun } from "./first-run";
 import { daysBetween, type CronEntry, type HermesJob, type RitualReceipt } from "./rhythm";
 
 /**
@@ -136,6 +137,12 @@ export interface CockpitView {
   tasklists: TasklistsView;
   board: BoardView;
   vault: { context: Section<string>; log: Section<string> };
+  /**
+   * The vault has no lanes, no tasklist and no lessons: the console is not reporting a
+   * healthy board, it is reporting an empty one. The page swaps the stage for the
+   * first-run contract rather than rendering five honest zeros that read as success.
+   */
+  firstRun: boolean;
 }
 
 export const SCOPE_IDS: CockpitScope[] = ["operator", "rhythm", "approvals", "tasklists", "vault"];
@@ -551,5 +558,12 @@ export function buildCockpitView(data: CockpitData): CockpitView {
     tasklists,
     board,
     vault: { context: data.vaultContext, log: data.vaultLog },
+    firstRun:
+      data.status.ok &&
+      isFirstRun({
+        instances: data.status.value.open,
+        tasklists: data.status.value.tasklists.filter((t) => t.tasks > 0).length,
+        lessons: data.status.value.activity?.memory?.lessons ?? 0,
+      }),
   };
 }

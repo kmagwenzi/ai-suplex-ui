@@ -214,10 +214,17 @@ function findFileService(vault: string): string {
 
 function loadFileService(vault: string): Promise<FileService> {
   if (!fileService) {
-    const file = findFileService(vault);
-    // The module resolves its own vault at import time; make it agree with this shell.
-    if (!process.env.AISUPLEX_VAULT) process.env.AISUPLEX_VAULT = vault;
-    fileService = importEsm(pathToFileURL(file).href);
+    try {
+      const file = findFileService(vault);
+      // The module resolves its own vault at import time; make it agree with this shell.
+      if (!process.env.AISUPLEX_VAULT) process.env.AISUPLEX_VAULT = vault;
+      fileService = importEsm(pathToFileURL(file).href);
+    } catch (err) {
+      // This is a plain function returning a promise, so a throw here would escape the
+      // caller's .catch and 500 the page. A vault with no file-service is a *day-one*
+      // vault, not a crash: reject, and let every section degrade on its own.
+      return Promise.reject(err);
+    }
   }
   return fileService;
 }

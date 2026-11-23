@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Panel } from "@/components/panel";
+import { FirstRun } from "@/components/first-run";
+
+/** The tool's own words for "there is nothing to score" — not a failure, a day one. */
+const NO_BATTLE = /No active tasklists found/i;
 
 type State =
   | { status: "loading" }
@@ -42,6 +46,11 @@ export function DeepUltraView() {
 
   if (state.status === "loading") {
     return <p className="px-5 py-5 text-sm text-muted sm:px-8">Loading Deep Ultra…</p>;
+  }
+
+  // A vault with no tasklist is not a broken tool: the scoreboard simply has no mission.
+  if (state.status === "error" && NO_BATTLE.test(state.message)) {
+    return <FirstRun surface="deep-ultra" />;
   }
 
   if (state.status === "error") {

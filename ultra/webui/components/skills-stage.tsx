@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/panel";
+import { FirstRun } from "@/components/first-run";
 import type { Candidate, PromoteRow, PromoteQueue, SkillRecord } from "@/lib/shell/skills";
 
 /**
@@ -173,6 +174,8 @@ export function SkillsStage() {
             <div className="py-24 text-center"><span className="micro">Reading the library…</span></div>
           ) : state.status === "error" ? (
             <div className="pt-6"><Panel tone="error" title="The skills route did not answer">{state.message}</Panel></div>
+          ) : candidates.length === 0 && queueRows.length === 0 && skills.length === 0 ? (
+            <FirstRun surface="skills" />
           ) : (
             <div className="grid gap-8 pt-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
               <div className="reveal min-w-0">
