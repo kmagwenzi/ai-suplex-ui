@@ -10,6 +10,7 @@ import type {
   BoardTasklist,
 } from "./cockpit";
 import { isFirstRun } from "./first-run";
+import { linkFor, type RowLink } from "./links";
 import { daysBetween, type CronEntry, type HermesJob, type RitualReceipt } from "./rhythm";
 
 /**
@@ -34,6 +35,8 @@ export interface AgeMark {
   /** 0–1, clamped: how far along the 14-day span this instance sits. */
   frac: number;
   stale: boolean;
+  /** The instance file itself — a row that cannot reach its source is a claim, not a read. */
+  link: RowLink | null;
 }
 
 export interface ScopeRow {
@@ -56,7 +59,7 @@ export interface OperatorView {
   open: number;
   /** Close packets awaiting the daily-tasks reconcile. */
   inbox: number;
-  lastShipped: { title: string; date: string } | null;
+  lastShipped: { title: string; date: string; link: RowLink | null } | null;
   memory: { semantic: number; procedural: number; episodic: number; lessons: number } | null;
   weekly: { review: boolean; ritual: boolean; lastRitual: string | null };
 }
@@ -85,11 +88,16 @@ export interface RhythmView {
   cron: { installed: boolean; entries: CronEntry[]; note: string | null };
   hermes: { jobs: HermesJob[]; note: string | null };
   receipt: RitualReceipt | null;
+  /** The one file every receipt lives in. */
+  receiptLink: RowLink | null;
   /** Days since the last receipt — the ritual's proof-of-life gap. */
   receiptAge: number | null;
   /** True when a cron line still appends into Memory/ritual-log.md. */
   redirects: boolean;
 }
+
+/** A tasklist row with the file it came from. */
+export type TasklistRowView = TasklistRow & { link: RowLink | null };
 
 export interface TasklistsView {
   ok: boolean;
@@ -97,7 +105,7 @@ export interface TasklistsView {
   answer: string;
   headline: string;
   /** Only tasklists that carry tasks — an empty file is not in flight. */
-  rows: TasklistRow[];
+  rows: TasklistRowView[];
   inFlight: number;
   nearDone: number;
   empty: number;
@@ -223,7 +231,7 @@ function tasklistsAnswer(inFlight: number, nearDone: number, total: number): str
   return `${head}; ${nearDone} ${nearDone === 1 ? "is" : "are"} within three boxes of done.`;
 }
 
-function buildOperator(status: Section<OperatorStatus>): OperatorView {
+function buildOperator(status: Section<OperatorStatus>, vault: string | null): OperatorView {
   if (!status.ok) {
     return {
       ok: false,
@@ -253,6 +261,7 @@ function buildOperator(status: Section<OperatorStatus>): OperatorView {
         days,
         frac: Math.min(1, Math.max(0, days / SPAN_DAYS)),
         stale: i.ageDays > THRESHOLD_DAYS,
+        link: linkFor("instance", i.file, vault),
       };
     })
     .sort((a, b) => b.days - a.days || a.key.localeCompare(b.key));
@@ -264,7 +273,11 @@ function buildOperator(status: Section<OperatorStatus>): OperatorView {
   }));
   const activity = s.activity;
   const lastShipped = activity?.lastShipped?.title
-    ? { title: activity.lastShipped.title, date: formatDay(activity.lastShipped.date) }
+    ? {
+        title: activity.lastShipped.title,
+        date: formatDay(activity.lastShipped.date),
+        link: linkFor("artifact", activity.lastShipped.path, vault),
+      }
     : null;
 
   return {
@@ -374,7 +387,7 @@ function rhythmAnswer(read: RhythmRead, receiptAge: number | null): string {
   return parts.map(sentence).join(". ") + ".";
 }
 
-function buildRhythm(section: Section<RhythmRead>, today: string): RhythmView {
+function buildRhythm(section: Section<RhythmRead>, today: string, vault: string | null): RhythmView {
   if (!section.ok) {
     return {
       ok: false,
@@ -386,6 +399,7 @@ function buildRhythm(section: Section<RhythmRead>, today: string): RhythmView {
       cron: { installed: false, entries: [], note: null },
       hermes: { jobs: [], note: null },
       receipt: null,
+      receiptLink: null,
       receiptAge: null,
       redirects: false,
     };
@@ -407,12 +421,13 @@ function buildRhythm(section: Section<RhythmRead>, today: string): RhythmView {
     cron: read.cron,
     hermes: read.hermes,
     receipt: read.receipt,
+    receiptLink: linkFor("receipt", "Memory/ritual-log.md", vault),
     receiptAge,
     redirects: read.cron.entries.some((e) => Boolean(e.redirect)),
   };
 }
 
-function buildTasklists(status: Section<OperatorStatus>): TasklistsView {
+function buildTasklists(status: Section<OperatorStatus>, vault: string | null): TasklistsView {
   if (!status.ok) {
     return {
       ok: false,
@@ -439,6 +454,8 @@ function buildTasklists(status: Section<OperatorStatus>): TasklistsView {
         a.file.localeCompare(b.file),
     );
 
+  const linked: TasklistRowView[] = rows.map((r) => ({ ...r, link: linkFor("tasklist", r.file, vault) }));
+
   const inFlight = rows.filter((r) => /^active/i.test(r.status) && r.done < r.tasks).length;
   const nearDone = rows.filter((r) => r.done < r.tasks && r.tasks - r.done <= 3).length;
 
@@ -447,7 +464,7 @@ function buildTasklists(status: Section<OperatorStatus>): TasklistsView {
     error: null,
     answer: tasklistsAnswer(inFlight, nearDone, rows.length),
     headline: `${rows.length} with tasks · ${all.length - rows.length} empty`,
-    rows,
+    rows: linked,
     inFlight,
     nearDone,
     empty: all.length - rows.length,
@@ -503,10 +520,10 @@ function buildBoard(section: Section<BoardRead> | undefined, inbox: number): Boa
 
 export function buildCockpitView(data: CockpitData): CockpitView {
   const today = data.status.ok ? data.status.value.date : new Date().toISOString().slice(0, 10);
-  const operator = buildOperator(data.status);
-  const rhythm = buildRhythm(data.rhythm, today);
+  const operator = buildOperator(data.status, data.vault);
+  const rhythm = buildRhythm(data.rhythm, today, data.vault);
   const approvals = buildApprovals(data.approvals);
-  const tasklists = buildTasklists(data.status);
+  const tasklists = buildTasklists(data.status, data.vault);
   const board = buildBoard(data.board, operator.inbox);
   const waiting = approvals.gates.length + approvals.ready;
 

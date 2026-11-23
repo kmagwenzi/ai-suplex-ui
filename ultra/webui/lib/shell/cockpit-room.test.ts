@@ -455,6 +455,39 @@ test("the board proposes a command per stale lane and never a write", () => {
   assert.equal(view.board.commandReview, "node Tools/close-stale.js --archive-tasklists --include-review");
 });
 
+test("every row reaches its source — a row without a link is a bug", () => {
+  const view = buildCockpitView(
+    data({
+      status: {
+        ok: true,
+        value: status({
+          tasklists: [tasklist({ file: "2026-11-22-a-tasklist.md" })],
+          activity: {
+            lastShipped: { title: "An artifact", date: "2026-11-23", path: "Artifacts/x/y/z.md" },
+          },
+        }),
+      },
+    }),
+  );
+
+  for (const mark of view.operator.marks) {
+    assert.ok(mark.link, "instance row has no link: " + mark.key);
+    assert.ok(mark.link!.href.startsWith("obsidian://open?vault=vault&file="), mark.link!.href);
+  }
+  assert.ok(view.operator.lastShipped?.link, "the shipped stat has no link");
+  assert.equal(view.operator.lastShipped!.link!.path, "Artifacts/x/y/z");
+  for (const row of view.tasklists.rows) assert.ok(row.link, "tasklist row has no link: " + row.file);
+  assert.ok(view.rhythm.receiptLink, "the receipt has no link");
+  assert.equal(view.rhythm.receiptLink!.path, "Memory/ritual-log");
+});
+
+test("a vault-less read links nothing — it never guesses a path", () => {
+  const view = buildCockpitView(data({ vault: null }));
+  assert.ok(view.operator.marks.every((m) => m.link === null));
+  assert.equal(view.rhythm.receiptLink, null);
+  assert.ok(view.tasklists.rows.every((r) => r.link === null));
+});
+
 test("a failed board read is stated, never invented", () => {
   const view = buildCockpitView(data({ board: { ok: false, error: "ENOENT" } }));
   assert.equal(view.board.ok, false);

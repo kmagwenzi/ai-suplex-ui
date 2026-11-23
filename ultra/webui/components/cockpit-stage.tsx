@@ -60,11 +60,30 @@ function AgeBar({ days, frac, stale }: { days: number; frac: number; stale: bool
   );
 }
 
-function Stat({ label, value, note }: { label: string; value: string | number; note?: string }) {
+function Stat({
+  label,
+  value,
+  note,
+  href,
+}: {
+  label: string;
+  value: string | number;
+  note?: string;
+  /** Where the number was read from. A stat that cannot reach its source is a claim. */
+  href?: string;
+}) {
   return (
     <div className="min-w-0">
       <div className="micro">{label}</div>
-      <div className="mt-1 font-mono text-[16px] leading-6 text-[color:var(--stage-ink)]">{value}</div>
+      <div className="mt-1 font-mono text-[16px] leading-6 text-[color:var(--stage-ink)]">
+        {href ? (
+          <a href={href} className="underline decoration-[color:var(--hairline-strong)] underline-offset-2 hover:text-[color:var(--stage-gold-hi)]">
+            {value}
+          </a>
+        ) : (
+          value
+        )}
+      </div>
       {note ? (
         <div className="line-clamp-2 font-mono text-[10.5px] leading-4 text-[color:var(--stage-mut)]">{note}</div>
       ) : null}
@@ -107,9 +126,18 @@ function OperatorBody({ view, board }: { view: CockpitView["operator"]; board: C
             </div>
             <p
               className="mt-0.5 truncate text-[12.5px] leading-5 text-[color:var(--stage-ink)]"
-              title={m.mission ?? undefined}
+              title={m.link?.path ?? m.mission ?? undefined}
             >
-              {m.mission ?? "no mission recorded"}
+              {m.link ? (
+                <a
+                  href={m.link.href}
+                  className="underline decoration-[color:var(--hairline-strong)] underline-offset-2 hover:text-[color:var(--stage-gold-hi)]"
+                >
+                  {m.mission ?? "no mission recorded"}
+                </a>
+              ) : (
+                (m.mission ?? "no mission recorded")
+              )}
             </p>
           </li>
         ))}
@@ -120,6 +148,7 @@ function OperatorBody({ view, board }: { view: CockpitView["operator"]; board: C
           label="Last shipped"
           value={view.lastShipped ? view.lastShipped.date : "—"}
           note={view.lastShipped?.title ?? "nothing recorded this period"}
+          href={view.lastShipped?.link?.href}
         />
         <Stat
           label="Memory pulse"
@@ -261,9 +290,18 @@ function TasklistsBody({ view }: { view: CockpitView["tasklists"] }) {
             <div className="flex items-baseline justify-between gap-4">
               <span
                 className="min-w-0 truncate text-[13px] leading-5 text-[color:var(--stage-ink)]"
-                title={row.title ?? row.file}
+                title={row.link?.path ?? row.title ?? row.file}
               >
-                {row.title ?? row.file}
+                {row.link ? (
+                  <a
+                    href={row.link.href}
+                    className="underline decoration-[color:var(--hairline-strong)] underline-offset-2 hover:text-[color:var(--stage-gold-hi)]"
+                  >
+                    {row.title ?? row.file}
+                  </a>
+                ) : (
+                  (row.title ?? row.file)
+                )}
               </span>
               <span
                 className={
@@ -464,7 +502,17 @@ function RhythmBody({ view }: { view: CockpitView["rhythm"] }) {
       {view.receipt ? (
         <div className="mt-2 border-t border-[color:var(--hairline)] pt-3">
           <p className="font-mono text-[11px] text-[color:var(--stage-cream)]">
-            {formatDay(view.receipt.date)} · {view.receipt.name}
+            {view.receiptLink ? (
+              <a
+                href={view.receiptLink.href}
+                className="underline decoration-[color:var(--hairline-strong)] underline-offset-2 hover:text-[color:var(--stage-gold-hi)]"
+                title={view.receiptLink.path}
+              >
+                {formatDay(view.receipt.date)} · {view.receipt.name}
+              </a>
+            ) : (
+              <>{formatDay(view.receipt.date)} · {view.receipt.name}</>
+            )}
           </p>
           <p className="mt-1 font-mono text-[10.5px] leading-5 text-[color:var(--stage-mut)]">
             ran {view.receipt.ran.join(", ") || "none"} · handed off {view.receipt.handed.join(", ") || "none"}
