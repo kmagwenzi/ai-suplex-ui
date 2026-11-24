@@ -1,7 +1,7 @@
 {
   "name": "lean-webui",
   "productName": "AI-Suplex 777 Console",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "AI-Suplex 777 Workflow Console — a local-first window over mcp v1 (stdio)",
   "main": "electron/main.js",
