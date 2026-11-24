@@ -16,10 +16,12 @@ import {
 } from "@/lib/command/envelope";
 import {
   contractFor,
+  handoffValue,
   prefillField,
   withTypeAwareDefault,
   type CommandContract,
   type ContentField,
+  type Handoff,
 } from "@/lib/command/contracts";
 import {
   vaultFileOptions,
@@ -39,17 +41,21 @@ const MEMORY_LOOP_LABEL: Record<string, string> = {
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** The command catalogue: 7 dispatchable prompts + the copy-only rows, with the panel. */
+/** The command catalogue: the dispatchable prompts + the copy-only rows, with the panel. */
 export function CommandCatalogue({
   cards,
   prefill,
   copyOnly,
   initialCommand,
+  initialType,
+  initialInstance,
 }: {
   cards: PromptCard[];
   prefill: PrefillInput;
   copyOnly: CopyOnlyCommand[];
   initialCommand?: string;
+  initialType?: string;
+  initialInstance?: string;
 }) {
   const [compose, setCompose] = useState<PromptCard | null>(null);
 
@@ -96,7 +102,18 @@ export function CommandCatalogue({
       </section>
 
       {compose ? (
-        <Composer card={compose} prefill={prefill} onClose={() => setCompose(null)} />
+        <Composer
+          card={compose}
+          prefill={prefill}
+          // The deep link's type/instance belong to ITS command — opening a
+          // different card must not inherit another command's target.
+          handoff={
+            compose.name === initialCommand
+              ? { type: initialType, instance: initialInstance }
+              : undefined
+          }
+          onClose={() => setCompose(null)}
+        />
       ) : null}
     </>
   );
@@ -222,17 +239,34 @@ function initialValues(
   contract: CommandContract | undefined,
   prefill: PrefillInput,
   paths: string[],
+  handoff?: Handoff,
 ): Record<string, string> {
   const values: Record<string, string> = {};
   for (const field of contract?.fields ?? []) {
     if (field.kind === "source") continue;
     const value = prefillField(name, field.key, prefill);
-    values[field.key] = field.kind === "vault-file" && value !== "" && !paths.includes(value) ? "" : value;
+    const fromLink = handoffValue(field, handoff);
+    values[field.key] =
+      fromLink !== ""
+        ? fromLink
+        : field.kind === "vault-file" && value !== "" && !paths.includes(value)
+          ? ""
+          : value;
   }
   return values;
 }
 
-function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: PrefillInput; onClose: () => void }) {
+function Composer({
+  card,
+  prefill,
+  handoff,
+  onClose,
+}: {
+  card: PromptCard;
+  prefill: PrefillInput;
+  handoff?: Handoff;
+  onClose: () => void;
+}) {
   const contract = contractFor(card.name);
   const files = useMemo(() => vaultFileOptions(prefill), [prefill]);
   const paths = useMemo(() => files.map((f) => f.path), [files]);
@@ -242,7 +276,7 @@ function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: Prefi
   );
 
   const [values, setValues] = useState<Record<string, string>>(() =>
-    initialValues(card.name, contract, prefill, files.map((f) => f.path)),
+    initialValues(card.name, contract, prefill, files.map((f) => f.path), handoff),
   );
   const [source, setSource] = useState<SourceSelection>({ type: null, value: "" });
   const [additional, setAdditional] = useState("");
@@ -451,7 +485,7 @@ function Composer({ card, prefill, onClose }: { card: PromptCard; prefill: Prefi
             ) : (
               <>
                 Copy hands the exact words to your agent — paste at the vault root
-                into <span className="font-medium text-ink">Codex · Claude Code · Hermes · Obsidian</span>.
+                into <span className="font-medium text-ink">DSH · Zed AI · Z Code · Kimi Code</span>.
                 Nothing runs from here. A stage turns{" "}
                 <span className="font-medium text-ink">done</span> only when its output file exists.
               </>

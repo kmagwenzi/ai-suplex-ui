@@ -34,13 +34,14 @@ const HARNESS =
   path.resolve(APP, "..", "..", "..", "ai-suplex-harness", "server.js");
 const COMMANDS_DIR = "Prompt Patterns/AI-Suplex Commands";
 
-/** The five command docs the nine prompts dispatch (the rest are patterns). */
+/** The six command docs the ten prompts dispatch (the rest are patterns). */
 const DISPATCHABLE_COMMAND_FILES = [
   `${COMMANDS_DIR}/⚡ Command — Session End Report.md`,
   `${COMMANDS_DIR}/⚡ Command — Save Context.md`,
   `${COMMANDS_DIR}/⚡ Command — Tasklist Generation.md`,
   `${COMMANDS_DIR}/⚡ Command — Define Workspace.md`,
   `${COMMANDS_DIR}/⚡ Command — Kickstart Workspace.md`,
+  `${COMMANDS_DIR}/⚡ Command — Close Workspace.md`,
 ];
 
 function vaultRoot(): string | null {
@@ -104,6 +105,7 @@ if (!available) {
         "AI-Suplex: Tasklist Generation",
         "AI-Suplex: Define Workspace",
         "AI-Suplex: Kickstart Workspace",
+        "AI-Suplex: Close Workspace",
       ]);
       for (const c of COPY_ONLY_COMMANDS) {
         assert.ok(!dispatchable.has(c.trigger), `${c.trigger} is dispatchable, not copy-only`);

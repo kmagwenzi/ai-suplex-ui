@@ -39,12 +39,28 @@ export default async function CommandsGuide() {
         AI-Suplex Commands
       </h1>
       <p className="mt-2 max-w-[70ch] text-[13px] text-ink-2">
-        The verbs. The nine below are dispatchable — the console composes their{" "}
+        The verbs. The {names.length} below are dispatchable — the console composes their{" "}
         <span className="mono text-[12px]">CONTENT</span> from fields and hands the
         words to an agent. Under them sit every{" "}
         <span className="mono text-[12px]">⚡ Command</span> document in the vault,
         read live from{" "}
         <span className="mono text-[12px]">Prompt Patterns/AI-Suplex Commands/</span>.
+      </p>
+      <p className="mt-2 max-w-[70ch] text-[12px] text-muted">
+        The workspace lifecycle is three of these verbs —{" "}
+        <a href="#c-define-workspace" className="text-accent hover:text-accent-ink">
+          Define
+        </a>{" "}
+        creates,{" "}
+        <a href="#c-kickstart-workspace" className="text-accent hover:text-accent-ink">
+          Kickstart
+        </a>{" "}
+        runs,{" "}
+        <a href="#c-close-workspace" className="text-accent hover:text-accent-ink">
+          Close
+        </a>{" "}
+        files. Close never executes a task, never writes the mission area, and
+        never syncs.
       </p>
 
       <nav aria-label="Sections" className="mt-6 rounded-lg border border-border bg-surface p-4">

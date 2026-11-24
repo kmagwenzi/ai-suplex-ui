@@ -1,6 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { groupByWorkspaceType, visibleRows, writerLabel } from "./workspace-board";
+import {
+  closeWorkspaceHref,
+  groupByWorkspaceType,
+  visibleRows,
+  writerLabel,
+} from "./workspace-board";
 import type { Instance } from "./types";
 
 function inst(overrides: Partial<Instance> = {}): Instance {
@@ -49,6 +54,38 @@ describe("groupByWorkspaceType", () => {
     const project = groups.find((g) => g.lane === "project-tasks");
     assert.ok(project);
     assert.equal(project.instances.length, 2);
+  });
+});
+
+describe("closeWorkspaceHref — the close hand-off names its target", () => {
+  it("carries the type label and the ref for an N-lane workspace", () => {
+    assert.equal(
+      closeWorkspaceHref(inst()),
+      "/commands?command=close-workspace&type=Project&instance=11",
+    );
+  });
+
+  it("falls back to the slug when the vault gave no ref", () => {
+    assert.equal(
+      closeWorkspaceHref(inst({ ref: null })),
+      "/commands?command=close-workspace&type=Project&instance=workspaces-tab",
+    );
+  });
+
+  it("a singleton names the type alone — it has no ref or slug", () => {
+    assert.equal(
+      closeWorkspaceHref(
+        inst({ thread: "daily-tasks", ref: null, slug: null, singleton: true, file: "daily-tasks.md" }),
+      ),
+      "/commands?command=close-workspace&type=Daily+Work",
+    );
+  });
+
+  it("an unknown lane keeps its raw token legible instead of inventing a label", () => {
+    assert.equal(
+      closeWorkspaceHref(inst({ thread: "long-running", ref: "4" })),
+      "/commands?command=close-workspace&type=long-running&instance=4",
+    );
   });
 });
 

@@ -5,7 +5,7 @@ import {
   matchTasklistsFor,
   tasklistProgress,
 } from "@/lib/workspace-detail";
-import { writerLabel } from "@/lib/workspace-board";
+import { closeWorkspaceHref, writerLabel } from "@/lib/workspace-board";
 import { workspaceLabel } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -131,6 +131,20 @@ export default async function WorkspaceDetail({
             <dd className="mono inline">{instance.file}</dd>
           </div>
         </dl>
+        {instance.status !== "closed" ? (
+          <p className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <Link
+              href={closeWorkspaceHref(instance)}
+              className="rounded-md border border-border bg-surface px-3 py-1.5 text-[13px] text-ink-2 hover:text-ink"
+            >
+              Close this workspace →
+            </Link>
+            <span className="text-[12px] text-muted">
+              files the brief, deposits a close packet, archives this
+              workspace&rsquo;s tasklist + context file — nothing runs.
+            </span>
+          </p>
+        ) : null}
       </header>
 
       <section className="mt-8" aria-labelledby="ws-tasklists">

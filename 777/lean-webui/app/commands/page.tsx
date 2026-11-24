@@ -14,11 +14,20 @@ export const dynamic = "force-dynamic";
 export default async function Commands({
   searchParams,
 }: {
-  searchParams: Promise<{ debug?: string; command?: string }>;
+  searchParams: Promise<{
+    debug?: string;
+    command?: string;
+    type?: string;
+    instance?: string;
+  }>;
 }) {
   const params = await searchParams;
   const debug = params.debug === "1";
   const command = params.command;
+  // A workspace row deep-links here with its own type + instance: a selection
+  // the operator made, never a guess the composer would have to clear.
+  const workspaceType = params.type;
+  const workspaceInstance = params.instance;
 
   let error: string | null = null;
   let cards: PromptCard[] | null = null;
@@ -72,7 +81,7 @@ export default async function Commands({
         Commands
       </h1>
       <p className="mt-2 max-w-[62ch] text-[13px] text-ink-2">
-        The verbs. Nine dispatchable prompts, listed live from{" "}
+        The verbs. {cards.length} dispatchable prompts, listed live from{" "}
         <code className="mono text-[12px]">prompts/list</code> and composed from
         the fields you fill — <span className="font-medium text-ink">never a
         pattern document, never re-authored here</span>. The rest are listed
@@ -84,6 +93,8 @@ export default async function Commands({
         prefill={prefill}
         copyOnly={COPY_ONLY_COMMANDS}
         initialCommand={command}
+        initialType={workspaceType}
+        initialInstance={workspaceInstance}
       />
 
       {debug ? <DebugOverlay /> : null}

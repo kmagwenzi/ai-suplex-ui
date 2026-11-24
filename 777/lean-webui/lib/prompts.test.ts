@@ -39,6 +39,12 @@ describe("memoryLoopKind", () => {
     );
   });
 
+  it("is no for a bolded None, however the sentence is punctuated", () => {
+    assert.equal(memoryLoopKind("## Memory Loop\n\n**None** at define time."), "no");
+    assert.equal(memoryLoopKind("## Memory Loop\n\n**None at close.** Lessons ran."), "no");
+    assert.equal(memoryLoopKind("## Memory Loop\n\n**None.**"), "no");
+  });
+
   it("is conditional when the loop runs only at session end", () => {
     assert.equal(
       memoryLoopKind("Memory loop — only at session end (R6)"),

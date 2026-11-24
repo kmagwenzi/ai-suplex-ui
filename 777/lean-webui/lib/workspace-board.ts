@@ -9,7 +9,12 @@
  */
 
 import type { Instance } from "./types";
-import { WORKSPACE_LABEL, WORKSPACE_LANES, type WorkspaceLane } from "./workspace";
+import {
+  WORKSPACE_LABEL,
+  WORKSPACE_LANES,
+  workspaceLabel,
+  type WorkspaceLane,
+} from "./workspace";
 
 /** How many rows a section shows before it collapses. */
 export const COLLAPSE_AT = 3;
@@ -50,6 +55,22 @@ export function groupByWorkspaceType(instances: Instance[]): WorkspaceGroup[] {
     label: WORKSPACE_LABEL[lane],
     instances: newestFirst(instances.filter((i) => i.thread === lane)),
   }));
+}
+
+/**
+ * The composer hand-off for closing one workspace. Type and instance are facts
+ * read off the row — not guesses — so the closer opens with its target named.
+ * A singleton carries no ref/slug, so its query names the type alone; the
+ * composer's contract is the thing that decides what those params fill.
+ */
+export function closeWorkspaceHref(i: Instance): string {
+  const q = new URLSearchParams({
+    command: "close-workspace",
+    type: workspaceLabel(i.thread),
+  });
+  const instance = i.ref ?? i.slug;
+  if (instance) q.set("instance", instance);
+  return "/commands?" + q.toString();
 }
 
 /** The human label for a writer class (R8: producer / committer). */

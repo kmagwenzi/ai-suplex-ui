@@ -36,6 +36,7 @@ export const PROMPT_STAGE: Record<string, StageId> = {
   "b-bomb-promotion": "review",
   "define-workspace": "plan",
   "kickstart-workspace": "context",
+  "close-workspace": "close",
 };
 
 /** The declared save path each command produces (spec §6 / pattern files). */
@@ -49,6 +50,7 @@ export const PROMPT_OUTPUT: Record<string, string> = {
   "b-bomb-promotion": "B-Bombs/…",
   "define-workspace": "Context Kick-start/Active/",
   "kickstart-workspace": "—",
+  "close-workspace": "Context Kick-start/Inbox/",
 };
 
 export type MemoryLoop = "yes" | "conditional" | "no" | null;
@@ -72,6 +74,7 @@ export const PROMPT_MEMORY_LOOP: Record<string, MemoryLoop> = {
   "b-bomb-promotion": "yes",
   "define-workspace": "no",
   "kickstart-workspace": "no",
+  "close-workspace": "no",
 };
 
 /**
@@ -80,7 +83,9 @@ export const PROMPT_MEMORY_LOOP: Record<string, MemoryLoop> = {
  */
 export function memoryLoopKind(body: string): MemoryLoop {
   if (!/memory\s*loop/i.test(body)) return null;
-  if (/\*\*none\*\*/i.test(body)) return "no";
+  // `**None**` and `**None at close.**` are the same declaration: the closer
+  // bolds the whole sentence, not just the word. Only the word has to match.
+  if (/\*\*none\b/i.test(body)) return "no";
   if (/skip\s*memory\s*loop|only\s+at\s+session\s+end|unless\s+`?skip/i.test(body)) {
     return "conditional";
   }
@@ -286,7 +291,7 @@ export interface CopyOnlyCommand {
 }
 
 /**
- * Every `⚡ Command — *.md` the vault holds that is **not** one of the nine
+ * Every `⚡ Command — *.md` the vault holds that is **not** one of the ten
  * dispatchable prompts, plus the one documented pattern-backed command.
  *
  * T034: derived from the vault, not curated by hand — the old six-row list both

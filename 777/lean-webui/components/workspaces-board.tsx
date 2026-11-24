@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { Instance } from "@/lib/types";
 import {
   COLLAPSE_AT,
+  closeWorkspaceHref,
   groupByWorkspaceType,
   visibleRows,
   writerLabel,
@@ -44,6 +45,12 @@ export function WorkspacesBoard({ instances }: { instances: Instance[] }) {
           className="rounded-md border border-border bg-surface px-3 py-1.5 text-[13px] text-ink-2 hover:text-ink"
         >
           Kickstart Workspace
+        </Link>
+        <Link
+          href="/commands?command=close-workspace"
+          className="rounded-md border border-border bg-surface px-3 py-1.5 text-[13px] text-ink-2 hover:text-ink"
+        >
+          Close Workspace
         </Link>
         <button
           type="button"
@@ -106,6 +113,15 @@ export function WorkspacesBoard({ instances }: { instances: Instance[] }) {
                         </span>
                         {i.singleton ? (
                           <span className="mono text-[11px] text-muted">singleton</span>
+                        ) : null}
+                        {i.status !== "closed" ? (
+                          <Link
+                            href={closeWorkspaceHref(i)}
+                            aria-label={"Close " + instanceName(i)}
+                            className="mono ml-auto text-[11px] text-accent hover:text-accent-ink hover:underline"
+                          >
+                            close →
+                          </Link>
                         ) : null}
                       </div>
                       <div className="mono mt-1 text-[11px] text-muted">{i.file}</div>

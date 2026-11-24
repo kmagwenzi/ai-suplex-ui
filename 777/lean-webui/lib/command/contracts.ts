@@ -380,7 +380,59 @@ export const CONTRACTS: Record<string, CommandContract> = {
     ],
     additionalHint: "Skip memory loop",
   },
+
+  // The third workspace verb: Define creates, Kickstart runs, Close files.
+  // CONTENT mirrors the doc's WORKSPACE block — Type + Title — and nothing else:
+  // a closer names the type and the workspace, never the tasks it ran.
+  "close-workspace": {
+    name: "close-workspace",
+    patternFile:
+      "Prompt Patterns/AI-Suplex Commands/⚡ Command — Close Workspace.md",
+    purpose:
+      "Close a finished workspace — file the brief, deposit the packet, archive.",
+    fields: [
+      {
+        key: "Type",
+        section: "WORKSPACE",
+        kind: "enum",
+        required: true,
+        placeholder: "<Daily Work | Project | Quick Task | Review>",
+        hint: "the kind of workspace — it maps to the internal lane",
+        options: WORKSPACE_TYPE_OPTIONS,
+      },
+      {
+        key: "Title",
+        label: "Workspace",
+        section: "WORKSPACE",
+        kind: "instance",
+        required: false,
+        placeholder: "<title, slug, or ref>",
+        hint: "which workspace to close — the closer asks when several are open, it never guesses",
+      },
+    ],
+    additionalHint: "Skip memory loop",
+  },
 };
+
+/** The target a workspace row already named: its type label and its instance. */
+export interface Handoff {
+  type?: string;
+  instance?: string;
+}
+
+/**
+ * A hand-off is a *selection*, not a prefill guess. It may fill the Type enum —
+ * but only when the value really is one of that enum's options — or an instance
+ * slot. Every other field keeps its own prefill. Pure.
+ */
+export function handoffValue(field: ContentField, handoff?: Handoff): string {
+  if (!handoff) return "";
+  if (field.key === "Type" && handoff.type && (field.options ?? []).includes(handoff.type)) {
+    return handoff.type;
+  }
+  if (field.kind === "instance" && handoff.instance) return handoff.instance;
+  return "";
+}
 
 export function contractFor(name: string): CommandContract | undefined {
   return CONTRACTS[name];

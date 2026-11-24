@@ -14,8 +14,15 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { CONTRACTS, contractFor, prefillField, withTypeAwareDefault } from "./contracts";
-import { PROMPT_STAGE, type PrefillInput } from "../prompts";
+import {
+  CONTRACTS,
+  contractFor,
+  handoffValue,
+  prefillField,
+  withTypeAwareDefault,
+  type ContentField,
+} from "./contracts";
+import { PROMPT_MEMORY_LOOP, PROMPT_STAGE, type PrefillInput } from "../prompts";
 import { fieldLine, lineCount, composeEnvelope } from "./envelope";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -40,7 +47,7 @@ function input(overrides: Partial<PrefillInput> = {}): PrefillInput {
 }
 
 describe("every dispatchable prompt has a contract", () => {
-  it("covers exactly the nine prompts the catalogue exposes", () => {
+  it("covers exactly the ten prompts the catalogue exposes", () => {
     const prompts = Object.keys(PROMPT_STAGE).sort();
     const contracted = Object.keys(CONTRACTS).sort();
     assert.deepEqual(contracted, prompts);
@@ -172,6 +179,67 @@ describe("the create/execute guardrail (Define ≠ Kickstart)", () => {
     assert.ok(kickKeys.includes("Title"), "kickstart-workspace declares Title (the pattern's second field)");
     assert.ok(!kickKeys.includes("Workspace"), "kickstart-workspace must NOT declare a 'Workspace' key");
     assert.ok(!kickKeys.includes("Mode"), "kickstart-workspace must NOT declare Mode (not in the pattern)");
+  });
+});
+
+describe("the close verb (Define → Kickstart → Close)", () => {
+  it("Close declares the same WORKSPACE block as Kickstart, and nothing more", () => {
+    const close = CONTRACTS["close-workspace"];
+    assert.ok(close, "close-workspace is dispatchable");
+    assert.deepEqual(
+      close.fields.map((f) => f.key),
+      ["Type", "Title"],
+      "a closer names the type and the workspace — never the tasks it ran",
+    );
+    const kick = CONTRACTS["kickstart-workspace"];
+    assert.deepEqual(
+      close.fields.map((f) => [f.key, f.section, f.kind, f.required]),
+      kick.fields.map((f) => [f.key, f.section, f.kind, f.required]),
+      "Close and Kickstart must open from the same block — that is what makes the pair honest",
+    );
+  });
+
+  it("Close goes through no TASKS/SETTINGS section and declares no memory loop", () => {
+    const close = CONTRACTS["close-workspace"];
+    assert.ok(!close.fields.some((f) => f.section === "TASKS" || f.section === "SETTINGS"));
+    assert.equal(PROMPT_MEMORY_LOOP["close-workspace"], "no");
+    assert.match(close.purpose, /packet|archiv/i, "the purpose names what closing produces");
+  });
+
+  it("Close is a distinct pattern from Save Context — different verb, different file", () => {
+    assert.notEqual(
+      CONTRACTS["close-workspace"].patternFile,
+      CONTRACTS["save-context"].patternFile,
+    );
+    assert.equal(CONTRACTS["save-context"].fields[0].key, "Thread");
+    assert.equal(CONTRACTS["close-workspace"].fields[0].key, "Type");
+  });
+});
+
+describe("handoffValue — a workspace row's selection, never a guess", () => {
+  const closeField = (key: string): ContentField => {
+    const field = CONTRACTS["close-workspace"].fields.find((f) => f.key === key);
+    assert.ok(field, `close-workspace declares ${key}`);
+    return field;
+  };
+
+  it("fills the Type enum only with a real option", () => {
+    assert.equal(handoffValue(closeField("Type"), { type: "Project" }), "Project");
+    assert.equal(handoffValue(closeField("Type"), { type: "Daily Work" }), "Daily Work");
+    // a stale or invented label is not an option — the field keeps its own prefill
+    assert.equal(handoffValue(closeField("Type"), { type: "Side Quest" }), "");
+  });
+
+  it("fills an instance slot, and nothing else", () => {
+    assert.equal(handoffValue(closeField("Title"), { instance: "28" }), "28");
+    // a type can never land in an instance field, or the reverse
+    assert.equal(handoffValue(closeField("Title"), { type: "Project" }), "");
+    assert.equal(handoffValue(closeField("Type"), { instance: "28" }), "");
+  });
+
+  it("is empty with no hand-off at all", () => {
+    assert.equal(handoffValue(closeField("Type"), undefined), "");
+    assert.equal(handoffValue(closeField("Title"), {}), "");
   });
 });
 

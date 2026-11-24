@@ -99,7 +99,10 @@ path) inside `ai-suplex-harness`, not a second implementation of memory here.
 |---|---|
 | `/` | **Today** — the pipeline strip, the current stage, the next command, the memory pulse, Ultra named-and-locked |
 | `/pipeline` | the ten stages as a readable stack — state · inputs · command · output · gate |
-| `/commands` | the catalogue — 7 dispatchable prompts (via `prompts/list`) + 14 copy-only, with the field-driven composer |
+| `/workspaces` | the four workspace types — the board, Define/Kickstart/**Close** hand-offs, and the create form |
+| `/workspaces/[id]` | one workspace — brief, matched tasklists, live mission, and the close hand-off |
+| `/commands` | the catalogue — 10 dispatchable prompts (via `prompts/list`) + 14 copy-only, with the field-driven composer |
+| `/guides/ai-suplex-commands` | every `⚡ Command` document read live, with each dispatchable command's CONTENT contract |
 | `/session` | the active day — read-only tasklist + capture + close |
 | `/memory` | lessons + index + promote/approve/ritual (each gated) |
 | `/setup` | first run — vault detect, `link.js` docs, MCP latency, the sample-vault offer, the first-loop entry |
